@@ -1,0 +1,1 @@
+# concourse-slack-alert-resource
