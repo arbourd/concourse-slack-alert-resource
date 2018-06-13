@@ -9,7 +9,7 @@ import (
 )
 
 func main() {
-	err := json.NewEncoder(os.Stdout).Encode(concourse.InResponse{})
+	err := json.NewEncoder(os.Stdout).Encode(concourse.InResponse{Version: concourse.Version{"ref": ""}})
 	if err != nil {
 		log.Fatalln(err)
 	}
