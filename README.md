@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.com/arbourd/concourse-slack-alert-resource.svg?branch=master)](https://travis-ci.com/arbourd/concourse-slack-alert-resource)
+
 # concourse-slack-alert-resource
 
 A structured and opinionated Slack notification resource for [Concourse](https://concourse.ci/).
