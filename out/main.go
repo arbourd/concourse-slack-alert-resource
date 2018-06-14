@@ -81,6 +81,13 @@ func main() {
 		metadata.URL = os.Getenv("ATC_EXTERNAL_URL")
 	}
 
+	if input.Params.Message != "" {
+		alert.Message = input.Params.Message
+	}
+	if input.Params.Color != "" {
+		alert.Color = input.Params.Color
+	}
+
 	var sendMessage = true
 	if input.Params.AlertType == "fixed" {
 		sendMessage, err = checkPreviousBuild(input, metadata)
