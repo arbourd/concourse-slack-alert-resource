@@ -3,7 +3,10 @@ language: go
 
 go:
   - "1.10"
-  - master
 
 script:
   - go test -cpu=1,2 -v ./...
+
+branches:
+  only:
+  - master
