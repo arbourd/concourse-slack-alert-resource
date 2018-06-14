@@ -68,11 +68,14 @@ Sends a structured message to Slack based on the alert type.
 
   <img src="./img/fixed.png" width="50%">
 
+- `message`: *Optional.* The status message at the top of the alert. Defaults to name of alert type, except for default which is nothing.
+- `color`: *Optional.* The color of the notification bar as a hexadecimal. Defaults to the icon color of the alert type.
+
 ## Examples
 
 ### Out
 
-Using the default alert type:
+Using the default alert type with custom message and color:
 
 ```yaml
 resources:
@@ -85,6 +88,9 @@ jobs:
   # ...
   plan:
   - put: notify
+    params:
+      message: Completed
+      color: "#eeeeee"
 ```
 
 Using built-in alert types with appropriate build hooks:

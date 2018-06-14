@@ -21,6 +21,8 @@ type OutRequest struct {
 
 type OutParams struct {
 	AlertType string `json:"alert_type"`
+	Message   string `json:"message"`
+	Color     string `json:"color"`
 }
 
 type OutResponse struct {
