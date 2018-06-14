@@ -19,29 +19,6 @@ type alertType struct {
 	Message string
 }
 
-var alertTypes = map[string]*alertType{
-	"success": &alertType{
-		Color:   "#32cd32",
-		IconURL: "https://ci.concourse-ci.org/public/images/favicon-succeeded.png",
-		Message: "Passed",
-	},
-	"failed": &alertType{
-		Color:   "#d00000",
-		IconURL: "https://ci.concourse-ci.org/public/images/favicon-failed.png",
-		Message: "Failed",
-	},
-	"aborted": &alertType{
-		Color:   "#8d4b32",
-		IconURL: "https://ci.concourse-ci.org/public/images/favicon-aborted.png",
-		Message: "Aborted",
-	},
-	"fixed": &alertType{
-		Color:   "#32cd32",
-		IconURL: "https://ci.concourse-ci.org/public/images/favicon-succeeded.png",
-		Message: "Fixed",
-	},
-}
-
 func main() {
 	var input *concourse.OutRequest
 	err := json.NewDecoder(os.Stdin).Decode(&input)
@@ -53,9 +30,44 @@ func main() {
 		log.Fatalln("slack url cannot be blank")
 	}
 
-	alert := alertTypes[input.Params.AlertType]
-	if alert == nil {
-		log.Fatalf("invalid alert type: '%s'\n", input.Params.AlertType)
+	var alert *alertType
+	switch input.Params.AlertType {
+	case "success":
+		alert = &alertType{
+			Color:   "#32cd32",
+			IconURL: "https://ci.concourse-ci.org/public/images/favicon-succeeded.png",
+			Message: "Success",
+		}
+	case "failed":
+		alert = &alertType{
+			Color:   "#d00000",
+			IconURL: "https://ci.concourse-ci.org/public/images/favicon-failed.png",
+			Message: "Failed",
+		}
+	case "started":
+		alert = &alertType{
+			Color:   "#f7cd42",
+			IconURL: "https://ci.concourse-ci.org/public/images/favicon-started.png",
+			Message: "Started",
+		}
+	case "aborted":
+		alert = &alertType{
+			Color:   "#8d4b32",
+			IconURL: "https://ci.concourse-ci.org/public/images/favicon-aborted.png",
+			Message: "Aborted",
+		}
+	case "fixed":
+		alert = &alertType{
+			Color:   "#32cd32",
+			IconURL: "https://ci.concourse-ci.org/public/images/favicon-succeeded.png",
+			Message: "Fixed",
+		}
+	default:
+		alert = &alertType{
+			Color:   "#35495c",
+			IconURL: "https://ci.concourse-ci.org/public/images/favicon-pending.png",
+			Message: "",
+		}
 	}
 
 	metadata := &concourse.BuildMetadata{
@@ -70,7 +82,7 @@ func main() {
 	}
 
 	var sendMessage = true
-	if alert.Message == "Fixed" {
+	if input.Params.AlertType == "fixed" {
 		sendMessage, err = checkPreviousBuild(input, metadata)
 		if err != nil {
 			log.Fatalln(err)

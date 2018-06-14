@@ -2,6 +2,10 @@
 
 A structured and opinionated Slack notification resource for [Concourse](https://concourse.ci/).
 
+<img src="./img/default.png" width="60%">
+
+The message is built by using Concourse's [resource metadata](https://concourse-ci.org/implementing-resources.html#resource-metadata) to show the pipeline, job, build number and a URL.
+
 ## Installing
 
 Use this resource by adding the following to the resource_types section of a pipeline config:
@@ -20,8 +24,9 @@ See the [Concourse docs](https://concourse-ci.org/resource-types.html) for more 
 ## Source Configuration
 
 * `url`: *Required.* Slack webhook URL.
-* `username`: *Optional.* Concourse basic auth username. Required if using `alert_type: fixed`
-* `password`: *Optional.* Concourse basic auth password. Required if using `alert_type: fixed`
+* `concourse_url`: *Optional.* The external URL that points to Concourse. Defaults to the env variable `ATC_EXTERNAL_URL`.
+* `username`: *Optional.* Concourse basic auth username. Required if using alert type `fixed`
+* `password`: *Optional.* Concourse basic auth password. Required if using alert type `fixed`
 
 ## Behavior
 
@@ -35,13 +40,39 @@ Sends a structured message to Slack based on the alert type.
 
 #### Parameters
 
-* `alert_type`: *Required.* The type of alert to send to Slack. There are 4 options: `success`, `failed`, `aborted` and `fixed`.
+- `alert_type`: *Optional.* The type of alert to send to Slack. Defaults to `default`.
+
+  `default`
+
+  <img src="./img/default.png" width="50%">
+
+  `success`
+
+  <img src="./img/success.png" width="50%">
+
+  `failed`
+
+  <img src="./img/failed.png" width="50%">
+
+  `started`
+
+  <img src="./img/started.png" width="50%">
+
+  `aborted`
+
+  <img src="./img/aborted.png" width="50%">
+
+  `fixed`
+
+  Fixed is a special alert type that requires both `username` and `password` to be set in Source and will only alert if the previous build was a failure.
+
+  <img src="./img/fixed.png" width="50%">
 
 ## Examples
 
 ### Out
 
-Using build hooks with equivilent alert types:
+Using the default alert type:
 
 ```yaml
 resources:
@@ -53,6 +84,24 @@ resources:
 jobs:
   # ...
   plan:
+  - put: notify
+```
+
+Using built-in alert types with appropriate build hooks:
+
+```yaml
+resources:
+- name: notify
+  type: slack-alert
+  source:
+    url: https://hooks.slack.com/services/ANER808F/SKDCVS3B/vvPBAWQVPHDKejdeThDiE4wrg
+
+jobs:
+  # ...
+  plan:
+  - put: notify
+    params:
+      alert_type: started
   - put: some-other-task
     on_success:
       put: notify
