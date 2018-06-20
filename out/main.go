@@ -13,7 +13,8 @@ import (
 	"github.com/arbourd/concourse-slack-alert-resource/slack"
 )
 
-type alertType struct {
+type Alert struct {
+	Name    string
 	Color   string
 	IconURL string
 	Message string
@@ -26,48 +27,17 @@ func main() {
 		log.Fatalln(err)
 	}
 
-	if input.Source.URL == "" {
-		log.Fatalln("slack url cannot be blank")
-	}
+	o, err := out(input)
 
-	var alert *alertType
-	switch input.Params.AlertType {
-	case "success":
-		alert = &alertType{
-			Color:   "#32cd32",
-			IconURL: "https://ci.concourse-ci.org/public/images/favicon-succeeded.png",
-			Message: "Success",
-		}
-	case "failed":
-		alert = &alertType{
-			Color:   "#d00000",
-			IconURL: "https://ci.concourse-ci.org/public/images/favicon-failed.png",
-			Message: "Failed",
-		}
-	case "started":
-		alert = &alertType{
-			Color:   "#f7cd42",
-			IconURL: "https://ci.concourse-ci.org/public/images/favicon-started.png",
-			Message: "Started",
-		}
-	case "aborted":
-		alert = &alertType{
-			Color:   "#8d4b32",
-			IconURL: "https://ci.concourse-ci.org/public/images/favicon-aborted.png",
-			Message: "Aborted",
-		}
-	case "fixed":
-		alert = &alertType{
-			Color:   "#32cd32",
-			IconURL: "https://ci.concourse-ci.org/public/images/favicon-succeeded.png",
-			Message: "Fixed",
-		}
-	default:
-		alert = &alertType{
-			Color:   "#35495c",
-			IconURL: "https://ci.concourse-ci.org/public/images/favicon-pending.png",
-			Message: "",
-		}
+	err = json.NewEncoder(os.Stdout).Encode(o)
+	if err != nil {
+		log.Fatalln(err)
+	}
+}
+
+func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
+	if input.Source.URL == "" {
+		return nil, errors.New("slack url cannot be blank")
 	}
 
 	metadata := &concourse.BuildMetadata{
@@ -81,6 +51,52 @@ func main() {
 		metadata.URL = os.Getenv("ATC_EXTERNAL_URL")
 	}
 
+	var alert *Alert
+	switch input.Params.AlertType {
+	case "success":
+		alert = &Alert{
+			Name:    "success",
+			Color:   "#32cd32",
+			IconURL: "https://ci.concourse-ci.org/public/images/favicon-succeeded.png",
+			Message: "Success",
+		}
+	case "failed":
+		alert = &Alert{
+			Name:    "failed",
+			Color:   "#d00000",
+			IconURL: "https://ci.concourse-ci.org/public/images/favicon-failed.png",
+			Message: "Failed",
+		}
+	case "started":
+		alert = &Alert{
+			Name:    "started",
+			Color:   "#f7cd42",
+			IconURL: "https://ci.concourse-ci.org/public/images/favicon-started.png",
+			Message: "Started",
+		}
+	case "aborted":
+		alert = &Alert{
+			Name:    "aborted",
+			Color:   "#8d4b32",
+			IconURL: "https://ci.concourse-ci.org/public/images/favicon-aborted.png",
+			Message: "Aborted",
+		}
+	case "fixed":
+		alert = &Alert{
+			Name:    "fixed",
+			Color:   "#32cd32",
+			IconURL: "https://ci.concourse-ci.org/public/images/favicon-succeeded.png",
+			Message: "Fixed",
+		}
+	default:
+		alert = &Alert{
+			Name:    "default",
+			Color:   "#35495c",
+			IconURL: "https://ci.concourse-ci.org/public/images/favicon-pending.png",
+			Message: "",
+		}
+	}
+
 	if input.Params.Message != "" {
 		alert.Message = input.Params.Message
 	}
@@ -88,11 +104,12 @@ func main() {
 		alert.Color = input.Params.Color
 	}
 
+	var err error
 	var sendMessage = true
-	if input.Params.AlertType == "fixed" {
+	if alert.Name == "fixed" {
 		sendMessage, err = checkPreviousBuild(input, metadata)
 		if err != nil {
-			log.Fatalln(err)
+			return nil, err
 		}
 	}
 
@@ -100,19 +117,19 @@ func main() {
 	if sendMessage {
 		err := slack.Send(input.Source.URL, payload)
 		if err != nil {
-			log.Fatalln(err)
+			return nil, err
 		}
 	}
 
-	out := concourse.OutResponse{
-		Version:  concourse.Version{"timestamp": time.Now().UTC().Format("20060102150405")},
-		Metadata: []concourse.Metadata{},
+	out := &concourse.OutResponse{
+		Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+		Metadata: []concourse.Metadata{
+			concourse.Metadata{Name: "type", Value: alert.Name},
+			concourse.Metadata{Name: "message", Value: alert.Message},
+			concourse.Metadata{Name: "color", Value: alert.Color},
+		},
 	}
-
-	err = json.NewEncoder(os.Stdout).Encode(out)
-	if err != nil {
-		log.Fatalln(err)
-	}
+	return out, nil
 }
 
 func checkPreviousBuild(input *concourse.OutRequest, meta *concourse.BuildMetadata) (bool, error) {
@@ -154,7 +171,7 @@ const (
 	fallbackTemplate = "%s: %s/%s/%s"
 )
 
-func buildSlackMessage(url string, alert *alertType, m *concourse.BuildMetadata) *slack.Payload {
+func buildSlackMessage(url string, alert *Alert, m *concourse.BuildMetadata) *slack.Payload {
 	buildURL := fmt.Sprintf(buildURLTemplate, m.URL, m.TeamName, m.PipelineName, m.JobName, m.BuildName)
 	attachment := slack.Attachment{
 		Fallback:   fmt.Sprintf("%s -- %s", fmt.Sprintf(fallbackTemplate, alert.Message, m.PipelineName, m.JobName, m.BuildName), buildURL),
