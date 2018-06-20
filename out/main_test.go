@@ -29,27 +29,78 @@ func TestOut(t *testing.T) {
 	}{
 		"default alert": {
 			outRequest: &concourse.OutRequest{
-				Source: concourse.Source{
-					URL: ok.URL,
-				},
+				Source: concourse.Source{URL: ok.URL},
 			},
 			want: &concourse.OutResponse{
 				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
 				Metadata: []concourse.Metadata{
-					concourse.Metadata{Name: "alerted", Value: "true"},
 					concourse.Metadata{Name: "type", Value: "default"},
-					concourse.Metadata{Name: "message", Value: ""},
-					concourse.Metadata{Name: "color", Value: "#35495c"},
+					concourse.Metadata{Name: "alerted", Value: "true"},
+					concourse.Metadata{Name: "channel", Value: ""},
 				},
 			},
 		},
-		"params override": {
+		"success alert": {
 			outRequest: &concourse.OutRequest{
-				Source: concourse.Source{
-					URL: ok.URL,
+				Source: concourse.Source{URL: ok.URL},
+				Params: concourse.OutParams{AlertType: "success"},
+			},
+			want: &concourse.OutResponse{
+				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+				Metadata: []concourse.Metadata{
+					concourse.Metadata{Name: "type", Value: "success"},
+					concourse.Metadata{Name: "alerted", Value: "true"},
+					concourse.Metadata{Name: "channel", Value: ""},
 				},
+			},
+		},
+		"failed alert": {
+			outRequest: &concourse.OutRequest{
+				Source: concourse.Source{URL: ok.URL},
+				Params: concourse.OutParams{AlertType: "failed"},
+			},
+			want: &concourse.OutResponse{
+				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+				Metadata: []concourse.Metadata{
+					concourse.Metadata{Name: "type", Value: "failed"},
+					concourse.Metadata{Name: "alerted", Value: "true"},
+					concourse.Metadata{Name: "channel", Value: ""},
+				},
+			},
+		},
+		"started alert": {
+			outRequest: &concourse.OutRequest{
+				Source: concourse.Source{URL: ok.URL},
+				Params: concourse.OutParams{AlertType: "started"},
+			},
+			want: &concourse.OutResponse{
+				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+				Metadata: []concourse.Metadata{
+					concourse.Metadata{Name: "type", Value: "started"},
+					concourse.Metadata{Name: "alerted", Value: "true"},
+					concourse.Metadata{Name: "channel", Value: ""},
+				},
+			},
+		},
+		"aborted alert": {
+			outRequest: &concourse.OutRequest{
+				Source: concourse.Source{URL: ok.URL},
+				Params: concourse.OutParams{AlertType: "aborted"},
+			},
+			want: &concourse.OutResponse{
+				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+				Metadata: []concourse.Metadata{
+					concourse.Metadata{Name: "type", Value: "aborted"},
+					concourse.Metadata{Name: "alerted", Value: "true"},
+					concourse.Metadata{Name: "channel", Value: ""},
+				},
+			},
+		},
+		"custom alert": {
+			outRequest: &concourse.OutRequest{
+				Source: concourse.Source{URL: ok.URL},
 				Params: concourse.OutParams{
-					AlertType: "non-legit-type",
+					AlertType: "non-existant-type",
 					Message:   "Deploying",
 					Color:     "#ffffff",
 				},
@@ -57,64 +108,75 @@ func TestOut(t *testing.T) {
 			want: &concourse.OutResponse{
 				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
 				Metadata: []concourse.Metadata{
-					concourse.Metadata{Name: "alerted", Value: "true"},
 					concourse.Metadata{Name: "type", Value: "default"},
-					concourse.Metadata{Name: "message", Value: "Deploying"},
-					concourse.Metadata{Name: "color", Value: "#ffffff"},
+					concourse.Metadata{Name: "alerted", Value: "true"},
+					concourse.Metadata{Name: "channel", Value: ""},
 				},
 			},
 		},
-		"disable does not send alert": {
+		"override channel at Source": {
 			outRequest: &concourse.OutRequest{
-				Source: concourse.Source{
-					URL: bad.URL,
-				},
-				Params: concourse.OutParams{
-					Disable: true,
-				},
+				Source: concourse.Source{URL: ok.URL, Channel: "#source"},
 			},
 			want: &concourse.OutResponse{
 				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
 				Metadata: []concourse.Metadata{
-					concourse.Metadata{Name: "alerted", Value: "false"},
 					concourse.Metadata{Name: "type", Value: "default"},
-					concourse.Metadata{Name: "message", Value: ""},
-					concourse.Metadata{Name: "color", Value: "#35495c"},
+					concourse.Metadata{Name: "alerted", Value: "true"},
+					concourse.Metadata{Name: "channel", Value: "#source"},
+				},
+			},
+		},
+		"override channel at Params": {
+			outRequest: &concourse.OutRequest{
+				Source: concourse.Source{URL: ok.URL, Channel: "#source"},
+				Params: concourse.OutParams{Channel: "#params"},
+			},
+			want: &concourse.OutResponse{
+				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+				Metadata: []concourse.Metadata{
+					concourse.Metadata{Name: "type", Value: "default"},
+					concourse.Metadata{Name: "alerted", Value: "true"},
+					concourse.Metadata{Name: "channel", Value: "#params"},
+				},
+			},
+		},
+		"disable alert": {
+			outRequest: &concourse.OutRequest{
+				Source: concourse.Source{URL: bad.URL},
+				Params: concourse.OutParams{Disable: true},
+			},
+			want: &concourse.OutResponse{
+				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+				Metadata: []concourse.Metadata{
+					concourse.Metadata{Name: "type", Value: "default"},
+					concourse.Metadata{Name: "alerted", Value: "false"},
+					concourse.Metadata{Name: "channel", Value: ""},
 				},
 			},
 		},
 		"error without Slack URL": {
 			outRequest: &concourse.OutRequest{
-				Source: concourse.Source{
-					URL: "",
-				},
+				Source: concourse.Source{URL: ""},
 			},
 			err: true,
 		},
 		"error with bad request": {
 			outRequest: &concourse.OutRequest{
-				Source: concourse.Source{
-					URL: bad.URL,
-				},
+				Source: concourse.Source{URL: bad.URL},
 			},
 			err: true,
 		},
 		"error without basic auth for fixed type": {
 			outRequest: &concourse.OutRequest{
-				Source: concourse.Source{
-					URL:      ok.URL,
-					Username: "",
-					Password: "",
-				},
-				Params: concourse.OutParams{
-					AlertType: "fixed",
-				},
+				Source: concourse.Source{URL: ok.URL, Username: "", Password: ""},
+				Params: concourse.OutParams{AlertType: "fixed"},
 			},
 			err: true,
 		},
 	}
 
-	os.Setenv("ATC_EXTERNAL_URL", "https://concourse.com")
+	os.Setenv("ATC_EXTERNAL_URL", "https://ci.example.com")
 	os.Setenv("BUILD_TEAM_NAME", "main")
 	os.Setenv("BUILD_PIPELINE_NAME", "demo")
 	os.Setenv("BUILD_JOB_NAME", "test")
@@ -136,7 +198,7 @@ func TestOut(t *testing.T) {
 }
 func TestBuildSlackMessage(t *testing.T) {
 	alert := &Alert{
-		Name:    "default",
+		Type:    "default",
 		Color:   "#ffffff",
 		IconURL: "",
 		Message: "Testing",
