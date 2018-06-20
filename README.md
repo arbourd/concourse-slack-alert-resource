@@ -27,8 +27,8 @@ See the [Concourse docs](https://concourse-ci.org/resource-types.html) for more 
 
 * `url`: *Required.* Slack webhook URL.
 * `concourse_url`: *Optional.* The external URL that points to Concourse. Defaults to the env variable `ATC_EXTERNAL_URL`.
-* `username`: *Optional.* Concourse basic auth username. Required if using alert type `fixed`
-* `password`: *Optional.* Concourse basic auth password. Required if using alert type `fixed`
+* `username`: *Optional.* Concourse basic auth username. Required for non-public pipelines if using alert type `fixed`
+* `password`: *Optional.* Concourse basic auth password. Required for non-public pipelines if using alert type `fixed`
 
 ## Behavior
 

@@ -139,10 +139,6 @@ func checkPreviousBuild(input *concourse.OutRequest, meta *concourse.BuildMetada
 		return false, nil
 	}
 
-	if input.Source.Username == "" || input.Source.Password == "" {
-		return false, errors.New("Source username and password cannot be blank if alert type is 'fixed'")
-	}
-
 	c, err := concourse.NewClient(input.Source.Username, input.Source.Password, meta.URL, meta.TeamName)
 	if err != nil {
 		return false, fmt.Errorf("error logging into Concourse: %s", err)
