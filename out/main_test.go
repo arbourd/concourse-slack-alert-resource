@@ -3,6 +3,7 @@ package main
 import (
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"testing"
 	"time"
@@ -34,6 +35,7 @@ func TestOut(t *testing.T) {
 			want: &concourse.OutResponse{
 				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
 				Metadata: []concourse.Metadata{
+					concourse.Metadata{Name: "alerted", Value: "true"},
 					concourse.Metadata{Name: "type", Value: "default"},
 					concourse.Metadata{Name: "message", Value: ""},
 					concourse.Metadata{Name: "color", Value: "#35495c"},
@@ -54,9 +56,29 @@ func TestOut(t *testing.T) {
 			want: &concourse.OutResponse{
 				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
 				Metadata: []concourse.Metadata{
+					concourse.Metadata{Name: "alerted", Value: "true"},
 					concourse.Metadata{Name: "type", Value: "default"},
 					concourse.Metadata{Name: "message", Value: "Deploying"},
 					concourse.Metadata{Name: "color", Value: "#ffffff"},
+				},
+			},
+		},
+		"disable does not send alert": {
+			outRequest: &concourse.OutRequest{
+				Source: concourse.Source{
+					URL: bad.URL,
+				},
+				Params: concourse.OutParams{
+					Disable: true,
+				},
+			},
+			want: &concourse.OutResponse{
+				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+				Metadata: []concourse.Metadata{
+					concourse.Metadata{Name: "alerted", Value: "false"},
+					concourse.Metadata{Name: "type", Value: "default"},
+					concourse.Metadata{Name: "message", Value: ""},
+					concourse.Metadata{Name: "color", Value: "#35495c"},
 				},
 			},
 		},
@@ -79,7 +101,9 @@ func TestOut(t *testing.T) {
 		"error without basic auth for fixed type": {
 			outRequest: &concourse.OutRequest{
 				Source: concourse.Source{
-					URL: bad.URL,
+					URL:      ok.URL,
+					Username: "",
+					Password: "",
 				},
 				Params: concourse.OutParams{
 					AlertType: "fixed",
@@ -88,6 +112,12 @@ func TestOut(t *testing.T) {
 			err: true,
 		},
 	}
+
+	os.Setenv("ATC_EXTERNAL_URL", "https://concourse.com")
+	os.Setenv("BUILD_TEAM_NAME", "main")
+	os.Setenv("BUILD_PIPELINE_NAME", "demo")
+	os.Setenv("BUILD_JOB_NAME", "test")
+	os.Setenv("BUILD_NAME", "2")
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {

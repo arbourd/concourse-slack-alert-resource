@@ -105,8 +105,8 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 	}
 
 	var err error
-	var sendMessage = true
-	if alert.Name == "fixed" {
+	var sendMessage = !input.Params.Disable
+	if alert.Name == "fixed" && sendMessage {
 		sendMessage, err = checkPreviousBuild(input, metadata)
 		if err != nil {
 			return nil, err
@@ -124,6 +124,7 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 	out := &concourse.OutResponse{
 		Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
 		Metadata: []concourse.Metadata{
+			concourse.Metadata{Name: "alerted", Value: strconv.FormatBool(sendMessage)},
 			concourse.Metadata{Name: "type", Value: alert.Name},
 			concourse.Metadata{Name: "message", Value: alert.Message},
 			concourse.Metadata{Name: "color", Value: alert.Color},
