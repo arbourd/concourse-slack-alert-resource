@@ -26,10 +26,10 @@ See the [Concourse docs](https://concourse-ci.org/resource-types.html) for more 
 ## Source Configuration
 
 * `url`: *Required.* Slack webhook URL.
+* `channel`: *Optional*. Target channel where messages are posted. If unset the default channel of the webhook is used.
 * `concourse_url`: *Optional.* The external URL that points to Concourse. Defaults to the env variable `ATC_EXTERNAL_URL`.
 * `username`: *Optional.* Concourse basic auth username. Required for non-public pipelines if using alert type `fixed`
 * `password`: *Optional.* Concourse basic auth password. Required for non-public pipelines if using alert type `fixed`
-* `channel`: *Optional*. Target channel where messages are posted. If unset the default channel of the webhook is used.
 
 ## Behavior
 
@@ -43,38 +43,39 @@ Sends a structured message to Slack based on the alert type.
 
 #### Parameters
 
-- `alert_type`: *Optional.* The type of alert to send to Slack. Defaults to `default`.
+- `alert_type`: *Optional.* The type of alert to send to Slack. See [Alert Types](#alert-types). Defaults to `default`.
+- `channel`: *Optional.* Channel where this message is posted. Defaults to the `channel` setting in Source.
+- `message`: *Optional.* The status message at the top of the alert. Defaults to name of alert type.
+- `color`: *Optional.* The color of the notification bar as a hexadecimal. Defaults to the icon color of the alert type.
+- `disable`: *Optional.* Disables the alert. Defaults to `false`.
 
-  `default`
+#### Alert Types
+
+- `default`
 
   <img src="./img/default.png" width="50%">
 
-  `success`
+- `success`
 
   <img src="./img/success.png" width="50%">
 
-  `failed`
+- `failed`
 
   <img src="./img/failed.png" width="50%">
 
-  `started`
+- `started`
 
   <img src="./img/started.png" width="50%">
 
-  `aborted`
+- `aborted`
 
   <img src="./img/aborted.png" width="50%">
 
-  `fixed`
+- `fixed`
 
-  Fixed is a special alert type that requires both `username` and `password` to be set in Source and will only alert if the previous build was a failure.
+  Fixed is a special alert type that only alerts if the previous build was a failure. Fixed requires `username` and `password` to be set in the Source if the pipeline is not public.
 
   <img src="./img/fixed.png" width="50%">
-
-- `message`: *Optional.* The status message at the top of the alert. Defaults to name of alert type, except for default which is nothing.
-- `color`: *Optional.* The color of the notification bar as a hexadecimal. Defaults to the icon color of the alert type.
-- `disable`: *Optional.* Disables the alert. Defaults to `false`.
-- `channel`: *Optional.* Channel where this message is posted. If unspecified it falls back to the `channel` setting of the resource.
 
 ## Examples
 
