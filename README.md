@@ -72,6 +72,7 @@ Sends a structured message to Slack based on the alert type.
 
 - `message`: *Optional.* The status message at the top of the alert. Defaults to name of alert type, except for default which is nothing.
 - `color`: *Optional.* The color of the notification bar as a hexadecimal. Defaults to the icon color of the alert type.
+- `disable`: *Optional.* Disables the alert. Defaults to `false`.
 
 ## Examples
 

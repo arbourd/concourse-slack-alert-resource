@@ -23,6 +23,7 @@ type OutParams struct {
 	AlertType string `json:"alert_type"`
 	Message   string `json:"message"`
 	Color     string `json:"color"`
+	Disable   bool   `json:"disable"`
 }
 
 type OutResponse struct {
