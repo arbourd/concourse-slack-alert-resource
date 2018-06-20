@@ -28,6 +28,9 @@ func main() {
 	}
 
 	o, err := out(input)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	err = json.NewEncoder(os.Stdout).Encode(o)
 	if err != nil {
@@ -137,10 +140,6 @@ func checkPreviousBuild(input *concourse.OutRequest, meta *concourse.BuildMetada
 	// Exit early if first build
 	if meta.BuildName == "1" {
 		return false, nil
-	}
-
-	if input.Source.Username == "" || input.Source.Password == "" {
-		return false, errors.New("Source username and password cannot be blank if alert type is 'fixed'")
 	}
 
 	c, err := concourse.NewClient(input.Source.Username, input.Source.Password, meta.URL, meta.TeamName)

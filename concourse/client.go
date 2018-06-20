@@ -38,6 +38,10 @@ func NewClient(username, password, host, team string) (*Client, error) {
 		team: team,
 	}
 
+	//Skip auth if no username and password provided
+	if username == "" && password == "" {
+		return c, nil
+	}
 	client := http.Client{}
 	authURL := c.host + fmt.Sprintf(apiAuth, c.team)
 	req, err := http.NewRequest("GET", authURL, nil)
@@ -67,11 +71,13 @@ func (c *Client) GetBuild(pipeline, job, name string) (*Build, error) {
 		return nil, err
 	}
 
-	cookie := &http.Cookie{
-		Name:  "ATC-Authorization",
-		Value: fmt.Sprintf("%s %s", c.auth.Type, c.auth.Value),
+	if c.auth.Type != "" {
+		cookie := &http.Cookie{
+			Name:  "ATC-Authorization",
+			Value: fmt.Sprintf("%s %s", c.auth.Type, c.auth.Value),
+		}
+		req.AddCookie(cookie)
 	}
-	req.AddCookie(cookie)
 
 	r, err := client.Do(req)
 	if err != nil {
