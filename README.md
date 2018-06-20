@@ -88,7 +88,7 @@ resources:
 - name: notify
   type: slack-alert
   source:
-    url: https://hooks.slack.com/services/ANER808F/SKDCVS3B/vvPBAWQVPHDKejdeThDiE4wrg
+    url: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
 
 jobs:
   # ...
@@ -106,7 +106,7 @@ resources:
 - name: notify
   type: slack-alert
   source:
-    url: https://hooks.slack.com/services/ANER808F/SKDCVS3B/vvPBAWQVPHDKejdeThDiE4wrg
+    url: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
 
 jobs:
   # ...
@@ -136,9 +136,8 @@ resources:
 - name: notify
   type: slack-alert
   source:
-    url: https://hooks.slack.com/services/ANER808F/SKDCVS3B/vvPBAWQVPHDKejdeThDiE4wrg
-
-    # alert_type: fixed requires Concourse credentials to check previous builds
+    url: https://hooks.slack.com/services/T00000000/B00000000/XXXXXXXXXXXXXXXXXXXXXXXX
+    # `alert_type: fixed` requires Concourse credentials if pipeline is private
     username: concourse
     password: concourse
 

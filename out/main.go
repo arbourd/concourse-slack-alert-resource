@@ -14,7 +14,7 @@ import (
 )
 
 type Alert struct {
-	Name    string
+	Type    string
 	Color   string
 	IconURL string
 	Message string
@@ -58,42 +58,42 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 	switch input.Params.AlertType {
 	case "success":
 		alert = &Alert{
-			Name:    "success",
+			Type:    "success",
 			Color:   "#32cd32",
 			IconURL: "https://ci.concourse-ci.org/public/images/favicon-succeeded.png",
 			Message: "Success",
 		}
 	case "failed":
 		alert = &Alert{
-			Name:    "failed",
+			Type:    "failed",
 			Color:   "#d00000",
 			IconURL: "https://ci.concourse-ci.org/public/images/favicon-failed.png",
 			Message: "Failed",
 		}
 	case "started":
 		alert = &Alert{
-			Name:    "started",
+			Type:    "started",
 			Color:   "#f7cd42",
 			IconURL: "https://ci.concourse-ci.org/public/images/favicon-started.png",
 			Message: "Started",
 		}
 	case "aborted":
 		alert = &Alert{
-			Name:    "aborted",
+			Type:    "aborted",
 			Color:   "#8d4b32",
 			IconURL: "https://ci.concourse-ci.org/public/images/favicon-aborted.png",
 			Message: "Aborted",
 		}
 	case "fixed":
 		alert = &Alert{
-			Name:    "fixed",
+			Type:    "fixed",
 			Color:   "#32cd32",
 			IconURL: "https://ci.concourse-ci.org/public/images/favicon-succeeded.png",
 			Message: "Fixed",
 		}
 	default:
 		alert = &Alert{
-			Name:    "default",
+			Type:    "default",
 			Color:   "#35495c",
 			IconURL: "https://ci.concourse-ci.org/public/images/favicon-pending.png",
 			Message: "",
@@ -109,7 +109,7 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 
 	var err error
 	var sendMessage = !input.Params.Disable
-	if alert.Name == "fixed" && sendMessage {
+	if alert.Type == "fixed" && sendMessage {
 		sendMessage, err = checkPreviousBuild(input, metadata)
 		if err != nil {
 			return nil, err
@@ -131,10 +131,9 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 	out := &concourse.OutResponse{
 		Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
 		Metadata: []concourse.Metadata{
+			concourse.Metadata{Name: "type", Value: alert.Type},
 			concourse.Metadata{Name: "alerted", Value: strconv.FormatBool(sendMessage)},
-			concourse.Metadata{Name: "type", Value: alert.Name},
-			concourse.Metadata{Name: "message", Value: alert.Message},
-			concourse.Metadata{Name: "color", Value: alert.Color},
+			concourse.Metadata{Name: "channel", Value: channel},
 		},
 	}
 	return out, nil
