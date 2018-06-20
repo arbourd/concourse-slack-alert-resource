@@ -9,6 +9,7 @@ import (
 
 type Payload struct {
 	Attachments []Attachment `json:"attachments"`
+	Channel     string       `json:"channel,omitempty"`
 }
 
 type Attachment struct {
