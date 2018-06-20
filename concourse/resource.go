@@ -5,6 +5,7 @@ type Source struct {
 	Username     string `json:"username"`
 	Password     string `json:"password"`
 	ConcourseURL string `json:"concourse_url"`
+	Channel      string `json:"channel"`
 }
 
 type Metadata struct {
@@ -24,6 +25,7 @@ type OutParams struct {
 	Message   string `json:"message"`
 	Color     string `json:"color"`
 	Disable   bool   `json:"disable"`
+	Channel   string `json:"channel"`
 }
 
 type OutResponse struct {

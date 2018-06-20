@@ -29,6 +29,7 @@ See the [Concourse docs](https://concourse-ci.org/resource-types.html) for more 
 * `concourse_url`: *Optional.* The external URL that points to Concourse. Defaults to the env variable `ATC_EXTERNAL_URL`.
 * `username`: *Optional.* Concourse basic auth username. Required for non-public pipelines if using alert type `fixed`
 * `password`: *Optional.* Concourse basic auth password. Required for non-public pipelines if using alert type `fixed`
+* `channel`: *Optional*. Target channel where messages are posted. If unset the default channel of the webhook is used.
 
 ## Behavior
 
@@ -73,6 +74,7 @@ Sends a structured message to Slack based on the alert type.
 - `message`: *Optional.* The status message at the top of the alert. Defaults to name of alert type, except for default which is nothing.
 - `color`: *Optional.* The color of the notification bar as a hexadecimal. Defaults to the icon color of the alert type.
 - `disable`: *Optional.* Disables the alert. Defaults to `false`.
+- `channel`: *Optional.* Channel where this message is posted. If unspecified it falls back to the `channel` setting of the resource.
 
 ## Examples
 
