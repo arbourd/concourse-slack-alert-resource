@@ -28,6 +28,9 @@ func main() {
 	}
 
 	o, err := out(input)
+	if err != nil {
+		log.Fatalln(err)
+	}
 
 	err = json.NewEncoder(os.Stdout).Encode(o)
 	if err != nil {
