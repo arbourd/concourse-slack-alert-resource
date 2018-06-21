@@ -73,9 +73,15 @@ Sends a structured message to Slack based on the alert type.
 
 - `fixed`
 
-  Fixed is a special alert type that only alerts if the previous build was a failure. Fixed requires `username` and `password` to be set in the Source if the pipeline is not public.
+  Fixed is a special alert type that only alerts if the previous build didn't succeed. Fixed requires `username` and `password` to be set for the resource if the pipeline is not public.
 
   <img src="./img/fixed.png" width="50%">
+
+- `broke`
+
+  Broke is a special alert type that only alerts if the previous build succeed. Broke requires `username` and `password` to be set for the resource if the pipeline is not public.
+
+  <img src="./img/broke.png" width="50%">
 
 ## Examples
 
