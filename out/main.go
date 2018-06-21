@@ -91,6 +91,13 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 			IconURL: "https://ci.concourse-ci.org/public/images/favicon-succeeded.png",
 			Message: "Fixed",
 		}
+	case "broke":
+		alert = &Alert{
+			Type:    "broke",
+			Color:   "#d00000",
+			IconURL: "https://ci.concourse-ci.org/public/images/favicon-failed.png",
+			Message: "Broke",
+		}
 	default:
 		alert = &Alert{
 			Type:    "default",
@@ -107,14 +114,16 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 		alert.Color = input.Params.Color
 	}
 
-	var err error
 	var sendMessage = !input.Params.Disable
-	if alert.Type == "fixed" && sendMessage {
-		sendMessage, err = checkPreviousBuild(input, metadata)
+
+	if sendMessage && (alert.Type == "fixed" || alert.Type == "broke") {
+		previousStatus, err := previousBuildStatus(input, metadata)
 		if err != nil {
 			return nil, err
 		}
+		sendMessage = (alert.Type == "fixed" && previousStatus != "succeeded") || (alert.Type == "broke" && previousStatus == "succeeded")
 	}
+
 	channel := input.Params.Channel
 	if channel == "" {
 		channel = input.Source.Channel
@@ -139,31 +148,28 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 	return out, nil
 }
 
-func checkPreviousBuild(input *concourse.OutRequest, meta *concourse.BuildMetadata) (bool, error) {
+func previousBuildStatus(input *concourse.OutRequest, meta *concourse.BuildMetadata) (string, error) {
 	// Exit early if first build
 	if meta.BuildName == "1" {
-		return false, nil
+		return "", nil
 	}
 
 	c, err := concourse.NewClient(input.Source.Username, input.Source.Password, meta.URL, meta.TeamName)
 	if err != nil {
-		return false, fmt.Errorf("error logging into Concourse: %s", err)
+		return "", fmt.Errorf("error logging into Concourse: %s", err)
 	}
 
 	no, err := strconv.Atoi(meta.BuildName)
 	if err != nil {
-		return false, err
+		return "", err
 	}
 
 	previous, err := c.GetBuild(meta.PipelineName, meta.JobName, strconv.Itoa(no-1))
 	if err != nil {
-		return false, fmt.Errorf("error requesting Concourse build status: %s", err)
+		return "", fmt.Errorf("error requesting Concourse build status: %s", err)
 	}
 
-	if previous.Status == "failed" {
-		return true, nil
-	}
-	return false, nil
+	return previous.Status, nil
 }
 
 const (
