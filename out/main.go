@@ -13,8 +13,10 @@ import (
 	"github.com/arbourd/concourse-slack-alert-resource/slack"
 )
 
+// Alert defines the configuration of the Slack alert
 type Alert struct {
 	Type    string
+	Channel string
 	Color   string
 	IconURL string
 	Message string
@@ -40,7 +42,7 @@ func main() {
 
 func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 	if input.Source.URL == "" {
-		return nil, errors.New("slack url cannot be blank")
+		return nil, errors.New("slack webhook url cannot be blank")
 	}
 
 	metadata := &concourse.BuildMetadata{
@@ -107,30 +109,28 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 		}
 	}
 
+	alert.Channel = input.Params.Channel
+	if alert.Channel == "" {
+		alert.Channel = input.Source.Channel
+	}
 	if input.Params.Message != "" {
 		alert.Message = input.Params.Message
 	}
 	if input.Params.Color != "" {
 		alert.Color = input.Params.Color
 	}
+	var send = !input.Params.Disable
 
-	var sendMessage = !input.Params.Disable
-
-	if sendMessage && (alert.Type == "fixed" || alert.Type == "broke") {
-		previousStatus, err := previousBuildStatus(input, metadata)
+	if send && (alert.Type == "fixed" || alert.Type == "broke") {
+		status, err := previousBuildStatus(input, metadata)
 		if err != nil {
 			return nil, err
 		}
-		sendMessage = (alert.Type == "fixed" && previousStatus != "succeeded") || (alert.Type == "broke" && previousStatus == "succeeded")
+		send = (alert.Type == "fixed" && status != "succeeded") || (alert.Type == "broke" && status == "succeeded")
 	}
 
-	channel := input.Params.Channel
-	if channel == "" {
-		channel = input.Source.Channel
-	}
-
-	payload := buildSlackMessage(channel, alert, metadata)
-	if sendMessage {
+	if send {
+		payload := buildSlackMessage(alert, metadata)
 		err := slack.Send(input.Source.URL, payload)
 		if err != nil {
 			return nil, err
@@ -141,8 +141,8 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 		Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
 		Metadata: []concourse.Metadata{
 			concourse.Metadata{Name: "type", Value: alert.Type},
-			concourse.Metadata{Name: "alerted", Value: strconv.FormatBool(sendMessage)},
-			concourse.Metadata{Name: "channel", Value: channel},
+			concourse.Metadata{Name: "channel", Value: alert.Channel},
+			concourse.Metadata{Name: "alerted", Value: strconv.FormatBool(send)},
 		},
 	}
 	return out, nil
@@ -156,7 +156,7 @@ func previousBuildStatus(input *concourse.OutRequest, meta *concourse.BuildMetad
 
 	c, err := concourse.NewClient(input.Source.Username, input.Source.Password, meta.URL, meta.TeamName)
 	if err != nil {
-		return "", fmt.Errorf("error logging into Concourse: %s", err)
+		return "", fmt.Errorf("error connecting to Concourse: %s", err)
 	}
 
 	no, err := strconv.Atoi(meta.BuildName)
@@ -180,7 +180,7 @@ const (
 	fallbackTemplate = "%s: %s/%s/%s"
 )
 
-func buildSlackMessage(channel string, alert *Alert, m *concourse.BuildMetadata) *slack.Payload {
+func buildSlackMessage(alert *Alert, m *concourse.BuildMetadata) *slack.Payload {
 	buildURL := fmt.Sprintf(buildURLTemplate, m.URL, m.TeamName, m.PipelineName, m.JobName, m.BuildName)
 	attachment := slack.Attachment{
 		Fallback:   fmt.Sprintf("%s -- %s", fmt.Sprintf(fallbackTemplate, alert.Message, m.PipelineName, m.JobName, m.BuildName), buildURL),
@@ -202,5 +202,5 @@ func buildSlackMessage(channel string, alert *Alert, m *concourse.BuildMetadata)
 		},
 	}
 
-	return &slack.Payload{Channel: channel, Attachments: []slack.Attachment{attachment}}
+	return &slack.Payload{Channel: alert.Channel, Attachments: []slack.Attachment{attachment}}
 }
