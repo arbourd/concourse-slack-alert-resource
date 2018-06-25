@@ -22,9 +22,18 @@ func TestOut(t *testing.T) {
 	}))
 	defer bad.Close()
 
+	env := map[string]string{
+		"ATC_EXTERNAL_URL":    "https://ci.example.com",
+		"BUILD_TEAM_NAME":     "main",
+		"BUILD_PIPELINE_NAME": "demo",
+		"BUILD_JOB_NAME":      "test",
+		"BUILD_NAME":          "2",
+	}
+
 	cases := map[string]struct {
 		outRequest *concourse.OutRequest
 		want       *concourse.OutResponse
+		env        map[string]string
 		err        bool
 	}{
 		"default alert": {
@@ -35,10 +44,11 @@ func TestOut(t *testing.T) {
 				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "default"},
-					concourse.Metadata{Name: "alerted", Value: "true"},
 					concourse.Metadata{Name: "channel", Value: ""},
+					concourse.Metadata{Name: "alerted", Value: "true"},
 				},
 			},
+			env: env,
 		},
 		"success alert": {
 			outRequest: &concourse.OutRequest{
@@ -49,10 +59,11 @@ func TestOut(t *testing.T) {
 				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "success"},
-					concourse.Metadata{Name: "alerted", Value: "true"},
 					concourse.Metadata{Name: "channel", Value: ""},
+					concourse.Metadata{Name: "alerted", Value: "true"},
 				},
 			},
+			env: env,
 		},
 		"failed alert": {
 			outRequest: &concourse.OutRequest{
@@ -63,10 +74,11 @@ func TestOut(t *testing.T) {
 				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "failed"},
-					concourse.Metadata{Name: "alerted", Value: "true"},
 					concourse.Metadata{Name: "channel", Value: ""},
+					concourse.Metadata{Name: "alerted", Value: "true"},
 				},
 			},
+			env: env,
 		},
 		"started alert": {
 			outRequest: &concourse.OutRequest{
@@ -77,10 +89,11 @@ func TestOut(t *testing.T) {
 				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "started"},
-					concourse.Metadata{Name: "alerted", Value: "true"},
 					concourse.Metadata{Name: "channel", Value: ""},
+					concourse.Metadata{Name: "alerted", Value: "true"},
 				},
 			},
+			env: env,
 		},
 		"aborted alert": {
 			outRequest: &concourse.OutRequest{
@@ -91,10 +104,11 @@ func TestOut(t *testing.T) {
 				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "aborted"},
-					concourse.Metadata{Name: "alerted", Value: "true"},
 					concourse.Metadata{Name: "channel", Value: ""},
+					concourse.Metadata{Name: "alerted", Value: "true"},
 				},
 			},
+			env: env,
 		},
 		"custom alert": {
 			outRequest: &concourse.OutRequest{
@@ -109,10 +123,11 @@ func TestOut(t *testing.T) {
 				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "default"},
-					concourse.Metadata{Name: "alerted", Value: "true"},
 					concourse.Metadata{Name: "channel", Value: ""},
+					concourse.Metadata{Name: "alerted", Value: "true"},
 				},
 			},
+			env: env,
 		},
 		"override channel at Source": {
 			outRequest: &concourse.OutRequest{
@@ -122,10 +137,11 @@ func TestOut(t *testing.T) {
 				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "default"},
-					concourse.Metadata{Name: "alerted", Value: "true"},
 					concourse.Metadata{Name: "channel", Value: "#source"},
+					concourse.Metadata{Name: "alerted", Value: "true"},
 				},
 			},
+			env: env,
 		},
 		"override channel at Params": {
 			outRequest: &concourse.OutRequest{
@@ -136,10 +152,11 @@ func TestOut(t *testing.T) {
 				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "default"},
-					concourse.Metadata{Name: "alerted", Value: "true"},
 					concourse.Metadata{Name: "channel", Value: "#params"},
+					concourse.Metadata{Name: "alerted", Value: "true"},
 				},
 			},
+			env: env,
 		},
 		"disable alert": {
 			outRequest: &concourse.OutRequest{
@@ -150,21 +167,24 @@ func TestOut(t *testing.T) {
 				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "default"},
-					concourse.Metadata{Name: "alerted", Value: "false"},
 					concourse.Metadata{Name: "channel", Value: ""},
+					concourse.Metadata{Name: "alerted", Value: "false"},
 				},
 			},
+			env: env,
 		},
 		"error without Slack URL": {
 			outRequest: &concourse.OutRequest{
 				Source: concourse.Source{URL: ""},
 			},
+			env: env,
 			err: true,
 		},
 		"error with bad request": {
 			outRequest: &concourse.OutRequest{
 				Source: concourse.Source{URL: bad.URL},
 			},
+			env: env,
 			err: true,
 		},
 		"error without basic auth for fixed type": {
@@ -172,20 +192,18 @@ func TestOut(t *testing.T) {
 				Source: concourse.Source{URL: ok.URL, Username: "", Password: ""},
 				Params: concourse.OutParams{AlertType: "fixed"},
 			},
+			env: env,
 			err: true,
 		},
 	}
 
-	os.Setenv("ATC_EXTERNAL_URL", "https://ci.example.com")
-	os.Setenv("BUILD_TEAM_NAME", "main")
-	os.Setenv("BUILD_PIPELINE_NAME", "demo")
-	os.Setenv("BUILD_JOB_NAME", "test")
-	os.Setenv("BUILD_NAME", "2")
-
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			got, err := out(c.outRequest)
+			for k, v := range c.env {
+				os.Setenv(k, v)
+			}
 
+			got, err := out(c.outRequest)
 			if err != nil && !c.err {
 				t.Fatalf("unexpected error from out:\n\t(ERR): %s", err)
 			} else if err == nil && c.err {
@@ -197,30 +215,18 @@ func TestOut(t *testing.T) {
 	}
 }
 func TestBuildSlackMessage(t *testing.T) {
-	alert := &Alert{
-		Type:    "default",
-		Color:   "#ffffff",
-		IconURL: "",
-		Message: "Testing",
-	}
-	metadata := &concourse.BuildMetadata{
-		URL:          "https://ci.example.com",
-		TeamName:     "main",
-		PipelineName: "demo",
-		JobName:      "test",
-		BuildName:    "1",
-	}
-
 	cases := map[string]struct {
-		channel  string
 		alert    *Alert
 		metadata *concourse.BuildMetadata
 		want     *slack.Payload
 	}{
 		"empty channel": {
-			channel:  "",
-			alert:    alert,
-			metadata: metadata,
+			alert: &Alert{
+				Type:    "default",
+				Color:   "#ffffff",
+				IconURL: "",
+				Message: "Testing",
+			},
 			want: &slack.Payload{
 				Attachments: []slack.Attachment{
 					slack.Attachment{
@@ -236,9 +242,13 @@ func TestBuildSlackMessage(t *testing.T) {
 				Channel: ""},
 		},
 		"channel and url set": {
-			channel:  "general",
-			alert:    alert,
-			metadata: metadata,
+			alert: &Alert{
+				Type:    "default",
+				Channel: "general",
+				Color:   "#ffffff",
+				IconURL: "",
+				Message: "Testing",
+			},
 			want: &slack.Payload{
 				Attachments: []slack.Attachment{
 					slack.Attachment{
@@ -255,9 +265,17 @@ func TestBuildSlackMessage(t *testing.T) {
 		},
 	}
 
+	metadata := &concourse.BuildMetadata{
+		URL:          "https://ci.example.com",
+		TeamName:     "main",
+		PipelineName: "demo",
+		JobName:      "test",
+		BuildName:    "1",
+	}
+
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			got := buildSlackMessage(c.channel, c.alert, c.metadata)
+			got := buildSlackMessage(c.alert, metadata)
 			if !reflect.DeepEqual(got, c.want) {
 				t.Fatalf("unexpected slack.Payload value from buildSlackMessage:\n\t(GOT): %#v\n\t(WNT): %#v", got, c.want)
 			}
