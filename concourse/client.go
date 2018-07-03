@@ -38,10 +38,11 @@ func NewClient(username, password, host, team string) (*Client, error) {
 		team: team,
 	}
 
-	//Skip auth if no username and password provided
+	// Skip auth if no username and password provided
 	if username == "" && password == "" {
 		return c, nil
 	}
+
 	client := http.Client{}
 	authURL := c.host + fmt.Sprintf(apiAuth, c.team)
 	req, err := http.NewRequest("GET", authURL, nil)
