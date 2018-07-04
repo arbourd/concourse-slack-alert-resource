@@ -45,17 +45,6 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 		return nil, errors.New("slack webhook url cannot be blank")
 	}
 
-	metadata := &concourse.BuildMetadata{
-		URL:          input.Source.ConcourseURL,
-		TeamName:     os.Getenv("BUILD_TEAM_NAME"),
-		PipelineName: os.Getenv("BUILD_PIPELINE_NAME"),
-		JobName:      os.Getenv("BUILD_JOB_NAME"),
-		BuildName:    os.Getenv("BUILD_NAME"),
-	}
-	if metadata.URL == "" {
-		metadata.URL = os.Getenv("ATC_EXTERNAL_URL")
-	}
-
 	var alert *Alert
 	switch input.Params.AlertType {
 	case "success":
@@ -121,6 +110,8 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 	}
 	var send = !input.Params.Disable
 
+	metadata := concourse.NewBuildMetadata(input.Source.ConcourseURL)
+
 	if send && (alert.Type == "fixed" || alert.Type == "broke") {
 		status, err := previousBuildStatus(input, metadata)
 		if err != nil {
@@ -148,23 +139,23 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 	return out, nil
 }
 
-func previousBuildStatus(input *concourse.OutRequest, meta *concourse.BuildMetadata) (string, error) {
+func previousBuildStatus(input *concourse.OutRequest, m concourse.BuildMetadata) (string, error) {
 	// Exit early if first build
-	if meta.BuildName == "1" {
+	if m.BuildName == "1" {
 		return "", nil
 	}
 
-	c, err := concourse.NewClient(input.Source.Username, input.Source.Password, meta.URL, meta.TeamName)
+	c, err := concourse.NewClient(input.Source.Username, input.Source.Password, m.URL, m.TeamName)
 	if err != nil {
 		return "", fmt.Errorf("error connecting to Concourse: %s", err)
 	}
 
-	no, err := strconv.Atoi(meta.BuildName)
+	no, err := strconv.Atoi(m.BuildName)
 	if err != nil {
 		return "", err
 	}
 
-	previous, err := c.GetBuild(meta.PipelineName, meta.JobName, strconv.Itoa(no-1))
+	previous, err := c.GetBuild(m.PipelineName, m.JobName, strconv.Itoa(no-1))
 	if err != nil {
 		return "", fmt.Errorf("error requesting Concourse build status: %s", err)
 	}
@@ -172,21 +163,13 @@ func previousBuildStatus(input *concourse.OutRequest, meta *concourse.BuildMetad
 	return previous.Status, nil
 }
 
-const (
-	// "$ATC_EXTERNAL_URL/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME"
-	buildURLTemplate = "%s/teams/%s/pipelines/%s/jobs/%s/builds/%s"
-
-	// "$ALERT_MESSAGE: $BUILD_PIPELINE_NAME/$BUILD_JOB_NAME/$BUILD_NAME -- $BUILD_URL"
-	fallbackTemplate = "%s: %s/%s/%s"
-)
-
-func buildMessage(alert *Alert, m *concourse.BuildMetadata) *slack.Message {
-	buildURL := fmt.Sprintf(buildURLTemplate, m.URL, m.TeamName, m.PipelineName, m.JobName, m.BuildName)
+func buildMessage(alert *Alert, m concourse.BuildMetadata) *slack.Message {
+	fallback := fmt.Sprintf("%s -- %s", fmt.Sprintf("%s: %s/%s/%s", alert.Message, m.PipelineName, m.JobName, m.BuildName), m.URL)
 	attachment := slack.Attachment{
-		Fallback:   fmt.Sprintf("%s -- %s", fmt.Sprintf(fallbackTemplate, alert.Message, m.PipelineName, m.JobName, m.BuildName), buildURL),
+		Fallback:   fallback,
 		AuthorName: alert.Message,
 		Color:      alert.Color,
-		Footer:     buildURL,
+		Footer:     m.URL,
 		FooterIcon: alert.IconURL,
 		Fields: []slack.Field{
 			slack.Field{
