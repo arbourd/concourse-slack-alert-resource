@@ -216,9 +216,8 @@ func TestOut(t *testing.T) {
 }
 func TestBuildMessage(t *testing.T) {
 	cases := map[string]struct {
-		alert    *Alert
-		metadata *concourse.BuildMetadata
-		want     *slack.Message
+		alert *Alert
+		want  *slack.Message
 	}{
 		"empty channel": {
 			alert: &Alert{
@@ -265,12 +264,13 @@ func TestBuildMessage(t *testing.T) {
 		},
 	}
 
-	metadata := &concourse.BuildMetadata{
-		URL:          "https://ci.example.com",
+	metadata := concourse.BuildMetadata{
+		Host:         "https://ci.example.com",
 		TeamName:     "main",
 		PipelineName: "demo",
 		JobName:      "test",
 		BuildName:    "1",
+		URL:          "https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1",
 	}
 
 	for name, c := range cases {
