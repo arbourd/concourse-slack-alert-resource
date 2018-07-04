@@ -19,23 +19,23 @@ func TestSend(t *testing.T) {
 
 	cases := map[string]struct {
 		url     string
-		payload *Payload
+		message *Message
 		err     bool
 	}{
 		"ok": {
 			url:     ok.URL,
-			payload: &Payload{},
+			message: &Message{},
 		},
 		"unauthorized": {
 			url:     unauthoized.URL,
-			payload: &Payload{},
+			message: &Message{},
 			err:     true,
 		},
 	}
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			err := Send(c.url, c.payload)
+			err := Send(c.url, c.message)
 			if err != nil && !c.err {
 				t.Fatalf("unexpected error from Send:\n\t(ERR): %s", err)
 			} else if err == nil && c.err {

@@ -214,11 +214,11 @@ func TestOut(t *testing.T) {
 		})
 	}
 }
-func TestBuildSlackMessage(t *testing.T) {
+func TestBuildMessage(t *testing.T) {
 	cases := map[string]struct {
 		alert    *Alert
 		metadata *concourse.BuildMetadata
-		want     *slack.Payload
+		want     *slack.Message
 	}{
 		"empty channel": {
 			alert: &Alert{
@@ -227,7 +227,7 @@ func TestBuildSlackMessage(t *testing.T) {
 				IconURL: "",
 				Message: "Testing",
 			},
-			want: &slack.Payload{
+			want: &slack.Message{
 				Attachments: []slack.Attachment{
 					slack.Attachment{
 						Fallback:   "Testing: demo/test/1 -- https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1",
@@ -249,7 +249,7 @@ func TestBuildSlackMessage(t *testing.T) {
 				IconURL: "",
 				Message: "Testing",
 			},
-			want: &slack.Payload{
+			want: &slack.Message{
 				Attachments: []slack.Attachment{
 					slack.Attachment{
 						Fallback:   "Testing: demo/test/1 -- https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1",
@@ -275,9 +275,9 @@ func TestBuildSlackMessage(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			got := buildSlackMessage(c.alert, metadata)
+			got := buildMessage(c.alert, metadata)
 			if !reflect.DeepEqual(got, c.want) {
-				t.Fatalf("unexpected slack.Payload value from buildSlackMessage:\n\t(GOT): %#v\n\t(WNT): %#v", got, c.want)
+				t.Fatalf("unexpected slack.Message value from buildSlackMessage:\n\t(GOT): %#v\n\t(WNT): %#v", got, c.want)
 			}
 		})
 	}

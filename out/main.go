@@ -130,8 +130,8 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 	}
 
 	if send {
-		payload := buildSlackMessage(alert, metadata)
-		err := slack.Send(input.Source.URL, payload)
+		message := buildMessage(alert, metadata)
+		err := slack.Send(input.Source.URL, message)
 		if err != nil {
 			return nil, err
 		}
@@ -180,7 +180,7 @@ const (
 	fallbackTemplate = "%s: %s/%s/%s"
 )
 
-func buildSlackMessage(alert *Alert, m *concourse.BuildMetadata) *slack.Payload {
+func buildMessage(alert *Alert, m *concourse.BuildMetadata) *slack.Message {
 	buildURL := fmt.Sprintf(buildURLTemplate, m.URL, m.TeamName, m.PipelineName, m.JobName, m.BuildName)
 	attachment := slack.Attachment{
 		Fallback:   fmt.Sprintf("%s -- %s", fmt.Sprintf(fallbackTemplate, alert.Message, m.PipelineName, m.JobName, m.BuildName), buildURL),
@@ -202,5 +202,5 @@ func buildSlackMessage(alert *Alert, m *concourse.BuildMetadata) *slack.Payload 
 		},
 	}
 
-	return &slack.Payload{Channel: alert.Channel, Attachments: []slack.Attachment{attachment}}
+	return &slack.Message{Attachments: []slack.Attachment{attachment}, Channel: alert.Channel}
 }

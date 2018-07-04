@@ -7,11 +7,15 @@ import (
 	"net/http"
 )
 
-type Payload struct {
+// Message represents a Slack API message
+// https://api.slack.com/docs/messages
+type Message struct {
 	Attachments []Attachment `json:"attachments"`
 	Channel     string       `json:"channel,omitempty"`
 }
 
+// Attachment represents a Slack API message attachment
+// https://api.slack.com/docs/message-attachments
 type Attachment struct {
 	Fallback   string  `json:"fallback"`
 	Color      string  `json:"color"`
@@ -21,6 +25,8 @@ type Attachment struct {
 	FooterIcon string  `json:"footer_icon"`
 }
 
+// Field represents a Slack API message attachment's fields
+// https://api.slack.com/docs/message-attachments
 type Field struct {
 	Title string `json:"title"`
 	Value string `json:"value"`
@@ -28,8 +34,8 @@ type Field struct {
 }
 
 // Send makes a request to the URL.
-func Send(url string, p *Payload) error {
-	buf, err := json.Marshal(p)
+func Send(url string, m *Message) error {
+	buf, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
