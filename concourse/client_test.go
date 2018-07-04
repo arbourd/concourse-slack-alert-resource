@@ -134,11 +134,11 @@ func TestGetBuild(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			build, err := c.client.GetBuild(c.pipeline, c.job, c.name)
 			if err != nil && !c.err {
-				t.Fatalf("unexpected error from NewClient:\n\t(ERR): %s", err)
+				t.Fatalf("unexpected error from GetBuild:\n\t(ERR): %s", err)
 			} else if err == nil && c.err {
-				t.Fatalf("expected an error from NewClient:\n\t(GOT): nil")
+				t.Fatalf("expected an error from GetBuild:\n\t(GOT): nil")
 			} else if !reflect.DeepEqual(build, c.want) {
-				t.Fatalf("unexpected Client from NewClient:\n\t(GOT): %#v\n\t(WNT): %#v", build, c.want)
+				t.Fatalf("unexpected Build from GetBuild:\n\t(GOT): %#v\n\t(WNT): %#v", build, c.want)
 			}
 		})
 	}
