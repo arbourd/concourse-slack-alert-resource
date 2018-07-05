@@ -6,7 +6,6 @@ import (
 	"os"
 	"reflect"
 	"testing"
-	"time"
 
 	"github.com/arbourd/concourse-slack-alert-resource/concourse"
 	"github.com/arbourd/concourse-slack-alert-resource/slack"
@@ -41,7 +40,7 @@ func TestOut(t *testing.T) {
 				Source: concourse.Source{URL: ok.URL},
 			},
 			want: &concourse.OutResponse{
-				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "default"},
 					concourse.Metadata{Name: "channel", Value: ""},
@@ -56,7 +55,7 @@ func TestOut(t *testing.T) {
 				Params: concourse.OutParams{AlertType: "success"},
 			},
 			want: &concourse.OutResponse{
-				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "success"},
 					concourse.Metadata{Name: "channel", Value: ""},
@@ -71,7 +70,7 @@ func TestOut(t *testing.T) {
 				Params: concourse.OutParams{AlertType: "failed"},
 			},
 			want: &concourse.OutResponse{
-				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "failed"},
 					concourse.Metadata{Name: "channel", Value: ""},
@@ -86,7 +85,7 @@ func TestOut(t *testing.T) {
 				Params: concourse.OutParams{AlertType: "started"},
 			},
 			want: &concourse.OutResponse{
-				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "started"},
 					concourse.Metadata{Name: "channel", Value: ""},
@@ -101,7 +100,7 @@ func TestOut(t *testing.T) {
 				Params: concourse.OutParams{AlertType: "aborted"},
 			},
 			want: &concourse.OutResponse{
-				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "aborted"},
 					concourse.Metadata{Name: "channel", Value: ""},
@@ -120,7 +119,7 @@ func TestOut(t *testing.T) {
 				},
 			},
 			want: &concourse.OutResponse{
-				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "default"},
 					concourse.Metadata{Name: "channel", Value: ""},
@@ -134,7 +133,7 @@ func TestOut(t *testing.T) {
 				Source: concourse.Source{URL: ok.URL, Channel: "#source"},
 			},
 			want: &concourse.OutResponse{
-				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "default"},
 					concourse.Metadata{Name: "channel", Value: "#source"},
@@ -149,7 +148,7 @@ func TestOut(t *testing.T) {
 				Params: concourse.OutParams{Channel: "#params"},
 			},
 			want: &concourse.OutResponse{
-				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "default"},
 					concourse.Metadata{Name: "channel", Value: "#params"},
@@ -164,7 +163,7 @@ func TestOut(t *testing.T) {
 				Params: concourse.OutParams{Disable: true},
 			},
 			want: &concourse.OutResponse{
-				Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
 					concourse.Metadata{Name: "type", Value: "default"},
 					concourse.Metadata{Name: "channel", Value: ""},
