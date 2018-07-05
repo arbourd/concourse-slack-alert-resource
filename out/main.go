@@ -7,7 +7,6 @@ import (
 	"log"
 	"os"
 	"strconv"
-	"time"
 
 	"github.com/arbourd/concourse-slack-alert-resource/concourse"
 	"github.com/arbourd/concourse-slack-alert-resource/slack"
@@ -129,7 +128,7 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 	}
 
 	out := &concourse.OutResponse{
-		Version: concourse.Version{"timestamp": time.Now().UTC().Format("201806200430")},
+		Version: concourse.Version{"ver": "static"},
 		Metadata: []concourse.Metadata{
 			concourse.Metadata{Name: "type", Value: alert.Type},
 			concourse.Metadata{Name: "channel", Value: alert.Channel},
