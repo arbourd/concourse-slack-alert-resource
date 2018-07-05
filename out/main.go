@@ -145,7 +145,7 @@ func previousBuildStatus(input *concourse.OutRequest, m concourse.BuildMetadata)
 		return "", nil
 	}
 
-	c, err := concourse.NewClient(input.Source.Username, input.Source.Password, m.URL, m.TeamName)
+	c, err := concourse.NewClient(m.Host, m.TeamName, input.Source.Username, input.Source.Password)
 	if err != nil {
 		return "", fmt.Errorf("error connecting to Concourse: %s", err)
 	}

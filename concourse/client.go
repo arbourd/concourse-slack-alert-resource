@@ -4,48 +4,37 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"net/url"
+	"strings"
 )
 
-const (
-	apiHost        = "%s://%s/api/v1/"
-	apiAuth        = "teams/%s/auth/token"
-	apiBuildStatus = "teams/%s/pipelines/%s/jobs/%s/builds/%s"
-)
-
-// Client represents a Concourse client
+// A Client is a Concourse API connection.
 type Client struct {
-	host string
-	team string
-
-	auth token
+	apiurl string
+	team   string
+	auth   token
 }
 
+// A token is used by Concourse for auth.
 type token struct {
 	Type  string `json:"type"`
 	Value string `json:"value"`
 }
 
-// NewClient logs into Concourse with Basic Auth and returns a client struct
-func NewClient(username, password, host, team string) (*Client, error) {
-	u, err := url.Parse(host)
-	if err != nil {
-		return nil, err
-	}
-
+// NewClient returns an authorized Client (if private) for the Concourse API.
+func NewClient(host, team, username, password string) (*Client, error) {
 	c := &Client{
-		host: fmt.Sprintf(apiHost, u.Scheme, u.Host),
-		team: team,
+		apiurl: fmt.Sprintf("%s/api/v1", strings.TrimSuffix(host, "/")),
+		team:   team,
 	}
 
-	// Skip auth if no username and password provided
+	// Return Client early if authorization is not needed.
 	if username == "" && password == "" {
 		return c, nil
 	}
+	url := fmt.Sprintf("%s/teams/%s/auth/token", c.apiurl, team)
 
 	client := http.Client{}
-	authURL := c.host + fmt.Sprintf(apiAuth, c.team)
-	req, err := http.NewRequest("GET", authURL, nil)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
@@ -63,11 +52,20 @@ func NewClient(username, password, host, team string) (*Client, error) {
 	return c, nil
 }
 
-// GetBuild returns a Build
+// GetBuild finds and returns a Build from the Concourse API  provided
+// pipeline, job and build name.
 func (c *Client) GetBuild(pipeline, job, name string) (*Build, error) {
+	url := fmt.Sprintf(
+		"%s/teams/%s/pipelines/%s/jobs/%s/builds/%s",
+		c.apiurl,
+		c.team,
+		pipeline,
+		job,
+		name,
+	)
+
 	client := http.Client{}
-	statusURL := c.host + fmt.Sprintf(apiBuildStatus, c.team, pipeline, job, name)
-	req, err := http.NewRequest("GET", statusURL, nil)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
 	}
