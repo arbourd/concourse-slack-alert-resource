@@ -7,6 +7,7 @@ type Source struct {
 	Password     string `json:"password"`
 	ConcourseURL string `json:"concourse_url"`
 	Channel      string `json:"channel"`
+	Disable      bool   `json:"disable"`
 }
 
 // Metadata are a key-value pair that must be included for in the in and out

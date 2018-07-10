@@ -68,6 +68,9 @@ func NewAlert(input *concourse.OutRequest) Alert {
 	}
 
 	alert.Disabled = input.Params.Disable
+	if alert.Disabled == false {
+		alert.Disabled = input.Source.Disable
+	}
 	alert.Channel = input.Params.Channel
 	if alert.Channel == "" {
 		alert.Channel = input.Source.Channel
