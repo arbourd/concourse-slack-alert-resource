@@ -215,11 +215,11 @@ func TestOut(t *testing.T) {
 }
 func TestBuildMessage(t *testing.T) {
 	cases := map[string]struct {
-		alert *Alert
+		alert Alert
 		want  *slack.Message
 	}{
 		"empty channel": {
-			alert: &Alert{
+			alert: Alert{
 				Type:    "default",
 				Color:   "#ffffff",
 				IconURL: "",
@@ -240,7 +240,7 @@ func TestBuildMessage(t *testing.T) {
 				Channel: ""},
 		},
 		"channel and url set": {
-			alert: &Alert{
+			alert: Alert{
 				Type:    "default",
 				Channel: "general",
 				Color:   "#ffffff",
