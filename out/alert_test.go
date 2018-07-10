@@ -26,9 +26,9 @@ func TestNewAlert(t *testing.T) {
 		},
 		"custom source": {
 			input: &concourse.OutRequest{
-				Source: concourse.Source{Channel: "general"},
+				Source: concourse.Source{Channel: "general", Disable: true},
 			},
-			want: Alert{Type: "default", Channel: "general", Color: "#35495c", IconURL: "https://ci.concourse-ci.org/public/images/favicon-pending.png"},
+			want: Alert{Type: "default", Channel: "general", Color: "#35495c", IconURL: "https://ci.concourse-ci.org/public/images/favicon-pending.png", Disabled: true},
 		},
 
 		// Alert types.
