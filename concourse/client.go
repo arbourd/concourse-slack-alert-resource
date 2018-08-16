@@ -31,25 +31,35 @@ func NewClient(host, team, username, password string) (*Client, error) {
 	if username == "" && password == "" {
 		return c, nil
 	}
-	url := fmt.Sprintf("%s/teams/%s/auth/token", c.apiurl, team)
+
+	err := c.loginLegacy(username, password)
+	if err != nil {
+		return nil, err
+	}
+
+	return c, nil
+}
+
+func (c *Client) loginLegacy(username, password string) error {
+	url := fmt.Sprintf("%s/teams/%s/auth/token", c.apiurl, c.team)
 
 	client := http.Client{}
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	req.SetBasicAuth(username, password)
 
 	r, err := client.Do(req)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if r.StatusCode != 200 {
-		return nil, fmt.Errorf("Could not log into Concourse: status code %d", r.StatusCode)
+		return fmt.Errorf("Could not log into Concourse: status code %d", r.StatusCode)
 	}
 
 	json.NewDecoder(r.Body).Decode(&c.auth)
-	return c, nil
+	return nil
 }
 
 // GetBuild finds and returns a Build from the Concourse API  provided
