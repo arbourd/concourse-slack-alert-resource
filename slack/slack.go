@@ -33,7 +33,7 @@ type Field struct {
 	Short bool   `json:"short"`
 }
 
-// Send makes a request to the URL.
+// Send sends the message to the webhook URL.
 func Send(url string, m *Message) error {
 	buf, err := json.Marshal(m)
 	if err != nil {
