@@ -1,30 +1,51 @@
 package concourse
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
+	"net/http/cookiejar"
+	"net/url"
+
+	"github.com/Masterminds/semver"
+	"golang.org/x/oauth2"
 )
 
 // A Client is a Concourse API connection.
 type Client struct {
-	apiurl string
+	atcurl *url.URL
 	team   string
-	auth   token
+
+	conn *http.Client
 }
 
-// A token is used by Concourse for auth.
-type token struct {
+// Info is version information from the Concourse API.
+type Info struct {
+	ATCVersion    string `json:"version"`
+	WorkerVersion string `json:"worker_version"`
+}
+
+// A Token is a legacy Concourse access token.
+type Token struct {
 	Type  string `json:"type"`
 	Value string `json:"value"`
 }
 
 // NewClient returns an authorized Client (if private) for the Concourse API.
-func NewClient(host, team, username, password string) (*Client, error) {
+func NewClient(atcurl, team, username, password string) (*Client, error) {
+	u, err := url.Parse(atcurl)
+	if err != nil {
+		return nil, err
+	}
+	// This cookie jar implementation never returns an error.
+	jar, _ := cookiejar.New(nil)
+
 	c := &Client{
-		apiurl: fmt.Sprintf("%s/api/v1", strings.TrimSuffix(host, "/")),
+		atcurl: u,
 		team:   team,
+
+		conn: &http.Client{Jar: jar},
 	}
 
 	// Return Client early if authorization is not needed.
@@ -32,7 +53,28 @@ func NewClient(host, team, username, password string) (*Client, error) {
 		return c, nil
 	}
 
-	err := c.loginLegacy(username, password)
+	info, err := c.info()
+	if err != nil {
+		return nil, err
+	}
+
+	s, err := semver.NewConstraint("< 4.0.0")
+	if err != nil {
+		return nil, err
+	}
+
+	v, err := semver.NewVersion(info.ATCVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	// Check if target Concourse is less than '4.0.0'.
+	if s.Check(v) {
+		err = c.loginLegacy(username, password)
+	} else {
+		err = c.login(username, password)
+	}
+
 	if err != nil {
 		return nil, err
 	}
@@ -40,55 +82,93 @@ func NewClient(host, team, username, password string) (*Client, error) {
 	return c, nil
 }
 
-func (c *Client) loginLegacy(username, password string) error {
-	url := fmt.Sprintf("%s/teams/%s/auth/token", c.apiurl, c.team)
+// info queries Concourse for its version information.
+func (c *Client) info() (Info, error) {
+	u := fmt.Sprintf("%s/api/v1/info", c.atcurl)
+	var info Info
 
-	client := http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
+	r, err := c.conn.Get(u)
+	if err != nil {
+		return info, err
+	}
+	if r.StatusCode != 200 {
+		return info, fmt.Errorf("could not get info from Concourse: status code %d", r.StatusCode)
+	}
+	json.NewDecoder(r.Body).Decode(&info)
+
+	return info, nil
+}
+
+// login gets an access token from Concourse.
+func (c *Client) login(username, password string) error {
+	u := fmt.Sprintf("%s/sky/token", c.atcurl)
+	config := oauth2.Config{
+		ClientID:     "fly",
+		ClientSecret: "Zmx5",
+		Endpoint:     oauth2.Endpoint{TokenURL: u},
+		Scopes:       []string{"openid", "profile", "email", "federated:id", "groups"},
+	}
+
+	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, c.conn)
+	t, err := config.PasswordCredentialsToken(ctx, username, password)
+	if err != nil {
+		return err
+	}
+
+	c.conn.Jar.SetCookies(
+		c.atcurl,
+		[]*http.Cookie{&http.Cookie{
+			Name:  "skymarshal_auth",
+			Value: fmt.Sprintf("%s %s", t.TokenType, t.AccessToken),
+		}},
+	)
+	return nil
+}
+
+// loginLegacy gets a legacy access token from Concourse.
+func (c *Client) loginLegacy(username, password string) error {
+	u := fmt.Sprintf("%s/api/v1/teams/%s/auth/token", c.atcurl, c.team)
+
+	req, err := http.NewRequest("GET", u, nil)
 	if err != nil {
 		return err
 	}
 	req.SetBasicAuth(username, password)
 
-	r, err := client.Do(req)
+	r, err := c.conn.Do(req)
 	if err != nil {
 		return err
 	}
 	if r.StatusCode != 200 {
-		return fmt.Errorf("Could not log into Concourse: status code %d", r.StatusCode)
+		return fmt.Errorf("could not log into Concourse: status code %d", r.StatusCode)
 	}
 
-	json.NewDecoder(r.Body).Decode(&c.auth)
+	var t Token
+	json.NewDecoder(r.Body).Decode(&t)
+
+	c.conn.Jar.SetCookies(
+		c.atcurl,
+		[]*http.Cookie{&http.Cookie{
+			Name:  "skymarshal_auth",
+			Value: fmt.Sprintf("%s %s", t.Type, t.Value),
+		}},
+	)
 	return nil
 }
 
-// GetBuild finds and returns a Build from the Concourse API  provided
-// pipeline, job and build name.
-func (c *Client) GetBuild(pipeline, job, name string) (*Build, error) {
-	url := fmt.Sprintf(
-		"%s/teams/%s/pipelines/%s/jobs/%s/builds/%s",
-		c.apiurl,
+// JobBuild finds and returns a Build from the Concourse API by its
+// pipeline name, job name and build name.
+func (c *Client) JobBuild(pipeline, job, name string) (*Build, error) {
+	u := fmt.Sprintf(
+		"%s/api/v1/teams/%s/pipelines/%s/jobs/%s/builds/%s",
+		c.atcurl,
 		c.team,
 		pipeline,
 		job,
 		name,
 	)
 
-	client := http.Client{}
-	req, err := http.NewRequest("GET", url, nil)
-	if err != nil {
-		return nil, err
-	}
-
-	if c.auth.Type != "" {
-		cookie := &http.Cookie{
-			Name:  "ATC-Authorization",
-			Value: fmt.Sprintf("%s %s", c.auth.Type, c.auth.Value),
-		}
-		req.AddCookie(cookie)
-	}
-
-	r, err := client.Do(req)
+	r, err := c.conn.Get(u)
 	if err != nil {
 		return nil, err
 	}
