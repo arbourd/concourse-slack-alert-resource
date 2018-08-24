@@ -4,9 +4,21 @@ language: go
 go:
   - "1.10"
 
-script:
-  - go test -cpu=1,2 -v ./...
+jobs:
+  include:
+    - stage: test
+      script:
+        - go test -cpu=1,2 -v ./...
+    - script:
+        - docker build -t concourse-slack-alert-resource-travis:$TRAVIS_BUILD_NUMBER .
+        - echo "{\"source\":{\"url\":\"$SLACK_WEBHOOK_URL\"}}" | docker run -i
+            -e "BUILD_TEAM_NAME=main"
+            -e "BUILD_PIPELINE_NAME=travis-ci"
+            -e "BUILD_JOB_NAME=test"
+            -e "BUILD_NAME=$TRAVIS_BUILD_NUMBER"
+            concourse-slack-alert-resource-travis:$TRAVIS_BUILD_NUMBER
+            /opt/resource/out
 
 branches:
   only:
-  - master
+    - master
