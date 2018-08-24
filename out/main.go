@@ -53,7 +53,7 @@ func previousBuildStatus(input *concourse.OutRequest, m concourse.BuildMetadata)
 		return "", err
 	}
 
-	previous, err := c.GetBuild(m.PipelineName, m.JobName, strconv.Itoa(no-1))
+	previous, err := c.JobBuild(m.PipelineName, m.JobName, strconv.Itoa(no-1))
 	if err != nil {
 		return "", fmt.Errorf("error requesting Concourse build status: %s", err)
 	}
