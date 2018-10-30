@@ -10,31 +10,48 @@ import (
 
 	"github.com/arbourd/concourse-slack-alert-resource/concourse"
 	"github.com/arbourd/concourse-slack-alert-resource/slack"
+	"io/ioutil"
 )
 
+const PutBasePath      = "/tmp/build/put/"
+
 func buildMessage(alert Alert, m concourse.BuildMetadata) *slack.Message {
-	fallback := fmt.Sprintf("%s -- %s", fmt.Sprintf("%s: %s/%s/%s", alert.Message, m.PipelineName, m.JobName, m.BuildName), m.URL)
+
+	message := alert.Message
+	if exists(PutBasePath + message) {
+		data, err := ioutil.ReadFile(PutBasePath + message)
+		if err == nil {
+			message = string(data)
+		}
+	}
+
+	fallback := fmt.Sprintf("%s -- %s", fmt.Sprintf("%s/%s: %s ", m.PipelineName, m.JobName, message), m.URL)
 	attachment := slack.Attachment{
 		Fallback:   fallback,
-		AuthorName: alert.Message,
 		Color:      alert.Color,
 		Footer:     m.URL,
 		FooterIcon: alert.IconURL,
 		Fields: []slack.Field{
 			slack.Field{
-				Title: "Job",
-				Value: fmt.Sprintf("%s/%s", m.PipelineName, m.JobName),
-				Short: true,
-			},
-			slack.Field{
-				Title: "Build",
-				Value: m.BuildName,
-				Short: true,
+				Title: fmt.Sprintf("%s/%s", m.PipelineName, m.JobName),
+				Value: message,
+				Short: false,
 			},
 		},
 	}
 
 	return &slack.Message{Attachments: []slack.Attachment{attachment}, Channel: alert.Channel}
+}
+
+func exists(path string) bool {
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	return true
 }
 
 func previousBuildStatus(input *concourse.OutRequest, m concourse.BuildMetadata) (string, error) {

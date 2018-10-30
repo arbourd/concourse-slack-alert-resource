@@ -46,7 +46,7 @@ Sends a structured message to Slack based on the alert type.
 
 - `alert_type`: *Optional.* The type of alert to send to Slack. See [Alert Types](#alert-types). Defaults to `default`.
 - `channel`: *Optional.* Channel where this message is posted. Defaults to the `channel` setting in Source.
-- `message`: *Optional.* The status message at the top of the alert. Defaults to name of alert type.
+- `message`: *Optional.* The status message at the top of the alert. Defaults to name of alert type. Must be string or file.
 - `color`: *Optional.* The color of the notification bar as a hexadecimal. Defaults to the icon color of the alert type.
 - `disable`: *Optional.* Disables the alert. Defaults to `false`.
 
