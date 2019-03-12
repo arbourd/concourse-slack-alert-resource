@@ -2,6 +2,7 @@ package concourse
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 )
@@ -33,13 +34,13 @@ type BuildMetadata struct {
 
 // NewBuildMetadata returns a populated BuildMetadata.
 // The default external URL can be overriden by the URL.
-func NewBuildMetadata(url string) BuildMetadata {
-	if url == "" {
-		url = os.Getenv("ATC_EXTERNAL_URL")
+func NewBuildMetadata(atcurl string) BuildMetadata {
+	if atcurl == "" {
+		atcurl = os.Getenv("ATC_EXTERNAL_URL")
 	}
 
 	metadata := BuildMetadata{
-		Host:         strings.TrimSuffix(url, "/"),
+		Host:         strings.TrimSuffix(atcurl, "/"),
 		ID:           os.Getenv("BUILD_ID"),
 		TeamName:     os.Getenv("BUILD_TEAM_NAME"),
 		PipelineName: os.Getenv("BUILD_PIPELINE_NAME"),
@@ -51,10 +52,10 @@ func NewBuildMetadata(url string) BuildMetadata {
 	metadata.URL = fmt.Sprintf(
 		"%s/teams/%s/pipelines/%s/jobs/%s/builds/%s",
 		metadata.Host,
-		metadata.TeamName,
-		metadata.PipelineName,
-		metadata.JobName,
-		metadata.BuildName,
+		url.PathEscape(metadata.TeamName),
+		url.PathEscape(metadata.PipelineName),
+		url.PathEscape(metadata.JobName),
+		url.PathEscape(metadata.BuildName),
 	)
 
 	return metadata

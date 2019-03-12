@@ -11,7 +11,7 @@ func TestNewBuildMetadata(t *testing.T) {
 		"ATC_EXTERNAL_URL":    "https://ci.example.com",
 		"BUILD_TEAM_NAME":     "main",
 		"BUILD_PIPELINE_NAME": "demo",
-		"BUILD_JOB_NAME":      "test",
+		"BUILD_JOB_NAME":      "my test",
 		"BUILD_NAME":          "1",
 	}
 
@@ -24,9 +24,9 @@ func TestNewBuildMetadata(t *testing.T) {
 				Host:         "https://ci.example.com",
 				TeamName:     "main",
 				PipelineName: "demo",
-				JobName:      "test",
+				JobName:      "my test",
 				BuildName:    "1",
-				URL:          "https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1",
+				URL:          "https://ci.example.com/teams/main/pipelines/demo/jobs/my%20test/builds/1",
 			},
 		},
 		"url override": {
@@ -35,9 +35,9 @@ func TestNewBuildMetadata(t *testing.T) {
 				Host:         "https://example.com",
 				TeamName:     "main",
 				PipelineName: "demo",
-				JobName:      "test",
+				JobName:      "my test",
 				BuildName:    "1",
-				URL:          "https://example.com/teams/main/pipelines/demo/jobs/test/builds/1",
+				URL:          "https://example.com/teams/main/pipelines/demo/jobs/my%20test/builds/1",
 			},
 		},
 	}
