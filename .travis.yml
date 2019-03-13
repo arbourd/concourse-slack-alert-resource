@@ -4,6 +4,9 @@ language: go
 go:
   - "1.12"
 
+env:
+  - SLACK_WEBHOOK_URL=https://hooks.slack.com/services/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
+
 jobs:
   include:
     - stage: test
