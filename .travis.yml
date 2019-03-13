@@ -1,8 +1,8 @@
-dist: trusty
+dist: xenial
 language: go
 
 go:
-  - "1.11"
+  - "1.12"
 
 jobs:
   include:
