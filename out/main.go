@@ -4,9 +4,11 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/arbourd/concourse-slack-alert-resource/concourse"
 	"github.com/arbourd/concourse-slack-alert-resource/slack"
@@ -14,9 +16,20 @@ import (
 
 func buildMessage(alert Alert, m concourse.BuildMetadata) *slack.Message {
 	fallback := fmt.Sprintf("%s -- %s", fmt.Sprintf("%s: %s/%s/%s", alert.Message, m.PipelineName, m.JobName, m.BuildName), m.URL)
+	const PutBasePath = "/tmp/build/put/"
+	msg := alert.Message
+
+	// Check if MessageFile is set and file read is successful
+	if alert.MessageFile != "" {
+		content, err := ioutil.ReadFile(PutBasePath + alert.MessageFile)
+		if err == nil {
+			msg = strings.TrimSpace(string(content))
+		}
+	}
+
 	attachment := slack.Attachment{
 		Fallback:   fallback,
-		AuthorName: alert.Message,
+		AuthorName: msg,
 		Color:      alert.Color,
 		Footer:     m.URL,
 		FooterIcon: alert.IconURL,
