@@ -1,7 +1,11 @@
 FROM golang:1.12-alpine AS build
 
+RUN apk --no-cache add --update git
+
 ENV CGO_ENABLED 0
+ENV GO111MODULE on
 RUN mkdir -p /go/src/github.com/arbourd/concourse-slack-alert-resource
+
 WORKDIR /go/src/github.com/arbourd/concourse-slack-alert-resource
 COPY . /go/src/github.com/arbourd/concourse-slack-alert-resource
 
