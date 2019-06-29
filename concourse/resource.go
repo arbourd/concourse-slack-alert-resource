@@ -29,7 +29,7 @@ type InResponse struct {
 	Metadata []Metadata `json:"metadata"`
 }
 
-// OutParams are the paramaters that can be configured for the out operation.
+// OutParams are the parameters that can be configured for the out operation.
 type OutParams struct {
 	AlertType string `json:"alert_type"`
 	Message   string `json:"message"`

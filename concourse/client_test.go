@@ -83,7 +83,7 @@ func TestNewClient(t *testing.T) {
 				return
 			}
 
-			// Test client conditions (if no errors occured).
+			// Test client conditions (if no errors occurred).
 			if client.atcurl.String() != s.URL {
 				t.Fatalf("unexpected Client.atcurl from NewClient:\n\t(GOT): %#v\n\t(WNT): %#v", client.atcurl, s.URL)
 			} else if client.team != "main" {

@@ -113,7 +113,7 @@ func TestOut(t *testing.T) {
 			outRequest: &concourse.OutRequest{
 				Source: concourse.Source{URL: ok.URL},
 				Params: concourse.OutParams{
-					AlertType: "non-existant-type",
+					AlertType: "non-existent-type",
 					Message:   "Deploying",
 					Color:     "#ffffff",
 				},

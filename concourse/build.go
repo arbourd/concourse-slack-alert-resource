@@ -33,7 +33,7 @@ type BuildMetadata struct {
 }
 
 // NewBuildMetadata returns a populated BuildMetadata.
-// The default external URL can be overriden by the URL.
+// The default external URL can be overridden by the URL.
 func NewBuildMetadata(atcurl string) BuildMetadata {
 	if atcurl == "" {
 		atcurl = os.Getenv("ATC_EXTERNAL_URL")
