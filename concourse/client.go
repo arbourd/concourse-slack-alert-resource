@@ -117,7 +117,7 @@ func (c *Client) login(username, password string) error {
 
 	c.conn.Jar.SetCookies(
 		c.atcurl,
-		[]*http.Cookie{&http.Cookie{
+		[]*http.Cookie{{
 			Name:  "skymarshal_auth",
 			Value: fmt.Sprintf("%s %s", t.TokenType, t.AccessToken),
 		}},
@@ -148,7 +148,7 @@ func (c *Client) loginLegacy(username, password string) error {
 
 	c.conn.Jar.SetCookies(
 		c.atcurl,
-		[]*http.Cookie{&http.Cookie{
+		[]*http.Cookie{{
 			Name:  "skymarshal_auth",
 			Value: fmt.Sprintf("%s %s", t.Type, t.Value),
 		}},
