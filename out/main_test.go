@@ -42,9 +42,9 @@ func TestOut(t *testing.T) {
 			want: &concourse.OutResponse{
 				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
-					concourse.Metadata{Name: "type", Value: "default"},
-					concourse.Metadata{Name: "channel", Value: ""},
-					concourse.Metadata{Name: "alerted", Value: "true"},
+					{Name: "type", Value: "default"},
+					{Name: "channel", Value: ""},
+					{Name: "alerted", Value: "true"},
 				},
 			},
 			env: env,
@@ -57,9 +57,9 @@ func TestOut(t *testing.T) {
 			want: &concourse.OutResponse{
 				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
-					concourse.Metadata{Name: "type", Value: "success"},
-					concourse.Metadata{Name: "channel", Value: ""},
-					concourse.Metadata{Name: "alerted", Value: "true"},
+					{Name: "type", Value: "success"},
+					{Name: "channel", Value: ""},
+					{Name: "alerted", Value: "true"},
 				},
 			},
 			env: env,
@@ -72,9 +72,9 @@ func TestOut(t *testing.T) {
 			want: &concourse.OutResponse{
 				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
-					concourse.Metadata{Name: "type", Value: "failed"},
-					concourse.Metadata{Name: "channel", Value: ""},
-					concourse.Metadata{Name: "alerted", Value: "true"},
+					{Name: "type", Value: "failed"},
+					{Name: "channel", Value: ""},
+					{Name: "alerted", Value: "true"},
 				},
 			},
 			env: env,
@@ -87,9 +87,9 @@ func TestOut(t *testing.T) {
 			want: &concourse.OutResponse{
 				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
-					concourse.Metadata{Name: "type", Value: "started"},
-					concourse.Metadata{Name: "channel", Value: ""},
-					concourse.Metadata{Name: "alerted", Value: "true"},
+					{Name: "type", Value: "started"},
+					{Name: "channel", Value: ""},
+					{Name: "alerted", Value: "true"},
 				},
 			},
 			env: env,
@@ -102,9 +102,9 @@ func TestOut(t *testing.T) {
 			want: &concourse.OutResponse{
 				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
-					concourse.Metadata{Name: "type", Value: "aborted"},
-					concourse.Metadata{Name: "channel", Value: ""},
-					concourse.Metadata{Name: "alerted", Value: "true"},
+					{Name: "type", Value: "aborted"},
+					{Name: "channel", Value: ""},
+					{Name: "alerted", Value: "true"},
 				},
 			},
 			env: env,
@@ -121,9 +121,9 @@ func TestOut(t *testing.T) {
 			want: &concourse.OutResponse{
 				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
-					concourse.Metadata{Name: "type", Value: "default"},
-					concourse.Metadata{Name: "channel", Value: ""},
-					concourse.Metadata{Name: "alerted", Value: "true"},
+					{Name: "type", Value: "default"},
+					{Name: "channel", Value: ""},
+					{Name: "alerted", Value: "true"},
 				},
 			},
 			env: env,
@@ -135,9 +135,9 @@ func TestOut(t *testing.T) {
 			want: &concourse.OutResponse{
 				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
-					concourse.Metadata{Name: "type", Value: "default"},
-					concourse.Metadata{Name: "channel", Value: "#source"},
-					concourse.Metadata{Name: "alerted", Value: "true"},
+					{Name: "type", Value: "default"},
+					{Name: "channel", Value: "#source"},
+					{Name: "alerted", Value: "true"},
 				},
 			},
 			env: env,
@@ -150,9 +150,9 @@ func TestOut(t *testing.T) {
 			want: &concourse.OutResponse{
 				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
-					concourse.Metadata{Name: "type", Value: "default"},
-					concourse.Metadata{Name: "channel", Value: "#params"},
-					concourse.Metadata{Name: "alerted", Value: "true"},
+					{Name: "type", Value: "default"},
+					{Name: "channel", Value: "#params"},
+					{Name: "alerted", Value: "true"},
 				},
 			},
 			env: env,
@@ -165,9 +165,9 @@ func TestOut(t *testing.T) {
 			want: &concourse.OutResponse{
 				Version: concourse.Version{"ver": "static"},
 				Metadata: []concourse.Metadata{
-					concourse.Metadata{Name: "type", Value: "default"},
-					concourse.Metadata{Name: "channel", Value: ""},
-					concourse.Metadata{Name: "alerted", Value: "false"},
+					{Name: "type", Value: "default"},
+					{Name: "channel", Value: ""},
+					{Name: "alerted", Value: "false"},
 				},
 			},
 			env: env,
@@ -227,13 +227,13 @@ func TestBuildMessage(t *testing.T) {
 			},
 			want: &slack.Message{
 				Attachments: []slack.Attachment{
-					slack.Attachment{
+					{
 						Fallback:   "Testing: demo/test/1 -- https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1",
 						Color:      "#ffffff",
 						AuthorName: "Testing",
 						Fields: []slack.Field{
-							slack.Field{Title: "Job", Value: "demo/test", Short: true},
-							slack.Field{Title: "Build", Value: "1", Short: true},
+							{Title: "Job", Value: "demo/test", Short: true},
+							{Title: "Build", Value: "1", Short: true},
 						},
 						Footer: "https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1", FooterIcon: ""},
 				},
@@ -249,13 +249,13 @@ func TestBuildMessage(t *testing.T) {
 			},
 			want: &slack.Message{
 				Attachments: []slack.Attachment{
-					slack.Attachment{
+					{
 						Fallback:   "Testing: demo/test/1 -- https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1",
 						Color:      "#ffffff",
 						AuthorName: "Testing",
 						Fields: []slack.Field{
-							slack.Field{Title: "Job", Value: "demo/test", Short: true},
-							slack.Field{Title: "Build", Value: "1", Short: true},
+							{Title: "Job", Value: "demo/test", Short: true},
+							{Title: "Build", Value: "1", Short: true},
 						},
 						Footer: "https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1", FooterIcon: ""},
 				},

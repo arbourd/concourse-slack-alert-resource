@@ -21,12 +21,12 @@ func buildMessage(alert Alert, m concourse.BuildMetadata) *slack.Message {
 		Footer:     m.URL,
 		FooterIcon: alert.IconURL,
 		Fields: []slack.Field{
-			slack.Field{
+			{
 				Title: "Job",
 				Value: fmt.Sprintf("%s/%s", m.PipelineName, m.JobName),
 				Short: true,
 			},
-			slack.Field{
+			{
 				Title: "Build",
 				Value: m.BuildName,
 				Short: true,
@@ -89,9 +89,9 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 	out := &concourse.OutResponse{
 		Version: concourse.Version{"ver": "static"},
 		Metadata: []concourse.Metadata{
-			concourse.Metadata{Name: "type", Value: alert.Type},
-			concourse.Metadata{Name: "channel", Value: alert.Channel},
-			concourse.Metadata{Name: "alerted", Value: strconv.FormatBool(send)},
+			{Name: "type", Value: alert.Type},
+			{Name: "channel", Value: alert.Channel},
+			{Name: "alerted", Value: strconv.FormatBool(send)},
 		},
 	}
 	return out, nil
