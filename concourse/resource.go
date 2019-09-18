@@ -32,11 +32,11 @@ type InResponse struct {
 // OutParams are the parameters that can be configured for the out operation.
 type OutParams struct {
 	AlertType   string `json:"alert_type"`
-	Message     string `json:"message"`
-	Color       string `json:"color"`
-	Disable     bool   `json:"disable"`
 	Channel     string `json:"channel"`
+	Color       string `json:"color"`
+	Message     string `json:"message"`
 	MessageFile string `json:"message_file"`
+	Disable     bool   `json:"disable"`
 }
 
 // OutRequest is in the input for the out operation.

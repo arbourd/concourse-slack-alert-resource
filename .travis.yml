@@ -17,7 +17,7 @@ jobs:
             -e "BUILD_JOB_NAME=test"
             -e "BUILD_NAME=$TRAVIS_BUILD_NUMBER"
             concourse-slack-alert-resource-travis:$TRAVIS_BUILD_NUMBER
-            /opt/resource/out
+            /opt/resource/out $PWD
 
 branches:
   only:
