@@ -4,19 +4,35 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/arbourd/concourse-slack-alert-resource/concourse"
 	"github.com/arbourd/concourse-slack-alert-resource/slack"
 )
 
-func buildMessage(alert Alert, m concourse.BuildMetadata) *slack.Message {
-	fallback := fmt.Sprintf("%s -- %s", fmt.Sprintf("%s: %s/%s/%s", alert.Message, m.PipelineName, m.JobName, m.BuildName), m.URL)
+func buildMessage(alert Alert, m concourse.BuildMetadata, path string) *slack.Message {
+	message := alert.Message
+
+	// Open and read message file if set
+	if alert.MessageFile != "" {
+		file := filepath.Join(path, alert.MessageFile)
+		f, err := ioutil.ReadFile(file)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error reading message_file: %v\nwill default to message instead\n", err)
+		} else {
+			message = strings.TrimSpace(string(f))
+		}
+	}
+
 	attachment := slack.Attachment{
-		Fallback:   fallback,
-		AuthorName: alert.Message,
+		Fallback:   fmt.Sprintf("%s -- %s", fmt.Sprintf("%s: %s/%s/%s", message, m.PipelineName, m.JobName, m.BuildName), m.URL),
+		AuthorName: message,
 		Color:      alert.Color,
 		Footer:     m.URL,
 		FooterIcon: alert.IconURL,
@@ -61,7 +77,7 @@ func previousBuildStatus(input *concourse.OutRequest, m concourse.BuildMetadata)
 	return previous.Status, nil
 }
 
-func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
+func out(input *concourse.OutRequest, path string) (*concourse.OutResponse, error) {
 	if input.Source.URL == "" {
 		return nil, errors.New("slack webhook url cannot be blank")
 	}
@@ -73,16 +89,16 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 	if send && (alert.Type == "fixed" || alert.Type == "broke") {
 		status, err := previousBuildStatus(input, metadata)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error getting last build status: %v", err)
 		}
 		send = (alert.Type == "fixed" && status != "succeeded") || (alert.Type == "broke" && status == "succeeded")
 	}
 
 	if send {
-		message := buildMessage(alert, metadata)
+		message := buildMessage(alert, metadata, path)
 		err := slack.Send(input.Source.URL, message)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("error sending slack message: %v", err)
 		}
 	}
 
@@ -98,19 +114,22 @@ func out(input *concourse.OutRequest) (*concourse.OutResponse, error) {
 }
 
 func main() {
+	// The first argument is the path to the build's sources.
+	path := os.Args[1]
+
 	var input *concourse.OutRequest
 	err := json.NewDecoder(os.Stdin).Decode(&input)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln(fmt.Errorf("error reading stdin: %v", err))
 	}
 
-	o, err := out(input)
+	o, err := out(input, path)
 	if err != nil {
 		log.Fatalln(err)
 	}
 
 	err = json.NewEncoder(os.Stdout).Encode(o)
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln(fmt.Errorf("error writing stdout: %v", err))
 	}
 }

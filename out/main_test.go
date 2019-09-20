@@ -1,9 +1,11 @@
 package main
 
 import (
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"reflect"
 	"testing"
 
@@ -202,7 +204,7 @@ func TestOut(t *testing.T) {
 				os.Setenv(k, v)
 			}
 
-			got, err := out(c.outRequest)
+			got, err := out(c.outRequest, "")
 			if err != nil && !c.err {
 				t.Fatalf("unexpected error from out:\n\t(ERR): %s", err)
 			} else if err == nil && c.err {
@@ -261,6 +263,44 @@ func TestBuildMessage(t *testing.T) {
 				},
 				Channel: "general"},
 		},
+		"message file": {
+			alert: Alert{
+				Type:        "default",
+				Message:     "Testing",
+				MessageFile: "message_file",
+			},
+			want: &slack.Message{
+				Attachments: []slack.Attachment{
+					{
+						Fallback:   "message file: demo/test/1 -- https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1",
+						AuthorName: "message file",
+						Fields: []slack.Field{
+							{Title: "Job", Value: "demo/test", Short: true},
+							{Title: "Build", Value: "1", Short: true},
+						},
+						Footer: "https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1", FooterIcon: ""},
+				},
+			},
+		},
+		"message file failure": {
+			alert: Alert{
+				Type:        "default",
+				Message:     "Testing",
+				MessageFile: "bad file",
+			},
+			want: &slack.Message{
+				Attachments: []slack.Attachment{
+					{
+						Fallback:   "Testing: demo/test/1 -- https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1",
+						AuthorName: "Testing",
+						Fields: []slack.Field{
+							{Title: "Job", Value: "demo/test", Short: true},
+							{Title: "Build", Value: "1", Short: true},
+						},
+						Footer: "https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1", FooterIcon: ""},
+				},
+			},
+		},
 	}
 
 	metadata := concourse.BuildMetadata{
@@ -274,7 +314,21 @@ func TestBuildMessage(t *testing.T) {
 
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
-			got := buildMessage(c.alert, metadata)
+			path := ""
+			if c.alert.MessageFile != "" {
+				dir, err := ioutil.TempDir("", "example")
+				if err != nil {
+					t.Fatal(err)
+				}
+				path = dir
+
+				defer os.RemoveAll(dir)
+				if err := ioutil.WriteFile(filepath.Join(dir, "message_file"), []byte("message file"), 0666); err != nil {
+					t.Fatal(err)
+				}
+			}
+
+			got := buildMessage(c.alert, metadata, path)
 			if !reflect.DeepEqual(got, c.want) {
 				t.Fatalf("unexpected slack.Message value from buildSlackMessage:\n\t(GOT): %#v\n\t(WNT): %#v", got, c.want)
 			}
