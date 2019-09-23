@@ -2,7 +2,7 @@
 
 # concourse-slack-alert-resource
 
-A structured and opinionated Slack notification resource for [Concourse](https://concourse.ci/).
+A structured and opinionated Slack notification resource for [Concourse](https://concourse-ci.org/).
 
 <img src="./img/default.png" width="60%">
 
