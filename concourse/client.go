@@ -77,13 +77,13 @@ func NewClient(atcurl, team, username, password string) (*Client, error) {
 	// Check if target Concourse is less than '4.0.0'.
 	if s.Check(v) {
 		err = c.loginLegacy(username, password)
-	// Check if the version is less than '5.5.0'.
 	} else {
 		t, err := c.login(username, password)
 		if err != nil {
 			return nil, err
 		}
-
+		
+		// Check if the version is less than '5.5.0'.
 		if up.Check(v) {
 			err = c.singleCookie(t)
 		} else {
