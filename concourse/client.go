@@ -118,7 +118,7 @@ func (c *Client) login(username, password string) error {
 	c.conn.Jar.SetCookies(
 		c.atcurl,
 		[]*http.Cookie{{
-			Name:  "skymarshal_auth",
+			Name:  "skymarshal_auth0",
 			Value: fmt.Sprintf("%s %s", t.TokenType, t.AccessToken),
 		}},
 	)
