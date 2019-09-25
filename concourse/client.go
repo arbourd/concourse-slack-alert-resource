@@ -68,11 +68,19 @@ func NewClient(atcurl, team, username, password string) (*Client, error) {
 		return nil, err
 	}
 
+	up, err := semver.NewConstraint("< 5.5.0")
+	if err != nil {
+		return nil, err
+	}
+
 	// Check if target Concourse is less than '4.0.0'.
 	if s.Check(v) {
 		err = c.loginLegacy(username, password)
+	// Check if the version is less than '5.5.0'.
+	} else if up.Check(v) {
+		err = c.login(username, password,"")
 	} else {
-		err = c.login(username, password)
+		err = c.login(username, password,"0")
 	}
 
 	if err != nil {
@@ -100,7 +108,7 @@ func (c *Client) info() (Info, error) {
 }
 
 // login gets an access token from Concourse.
-func (c *Client) login(username, password string) error {
+func (c *Client) login(username, password, suffix string) error {
 	u := fmt.Sprintf("%s/sky/token", c.atcurl)
 	config := oauth2.Config{
 		ClientID:     "fly",
@@ -118,7 +126,7 @@ func (c *Client) login(username, password string) error {
 	c.conn.Jar.SetCookies(
 		c.atcurl,
 		[]*http.Cookie{{
-			Name:  "skymarshal_auth0",
+			Name:  "skymarshal_auth"+suffix,
 			Value: fmt.Sprintf("%s %s", t.TokenType, t.AccessToken),
 		}},
 	)
