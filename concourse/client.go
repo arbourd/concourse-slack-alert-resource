@@ -161,7 +161,7 @@ func (c *Client) splitToken(t *oauth2.Token) error {
 }
 
 // login gets an access token from Concourse.
-func (c *Client) login(username string, password string) (*oauth2.Token, error) {
+func (c *Client) login(username, password string) (*oauth2.Token, error) {
 	u := fmt.Sprintf("%s/sky/token", c.atcurl)
 	config := oauth2.Config{
 		ClientID:     "fly",
