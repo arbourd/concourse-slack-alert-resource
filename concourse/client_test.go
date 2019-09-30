@@ -20,9 +20,9 @@ func TestNewClient(t *testing.T) {
 		username string
 		password string
 
-		public bool
-		legacy bool
-		err    bool
+		version string
+		public  bool
+		err     bool
 	}{
 		"public": {
 			public: true,
@@ -31,11 +31,19 @@ func TestNewClient(t *testing.T) {
 			username: "admin",
 			password: "sup3rs3cret1",
 
-			legacy: true,
+			version: "3.14.2",
 		},
 		"skymarshal": {
 			username: "admin",
 			password: "sup3rs3cret1",
+
+			version: "4.0.0",
+		},
+		"multi cookie": {
+			username: "admin",
+			password: "sup3rs3cret1",
+
+			version: "5.5.0",
 		},
 		"unauthorized": {
 			username: "admin",
@@ -51,11 +59,9 @@ func TestNewClient(t *testing.T) {
 				http.Error(w, "", http.StatusUnauthorized)
 			}
 
-			var version string
-			if c.legacy {
-				version = "3.14.2"
-			} else {
-				version = "4.0.0"
+			version := c.version
+			if version == "" {
+				version = "5.5.0"
 			}
 
 			var resp []byte
