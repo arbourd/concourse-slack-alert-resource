@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
+	"strconv"
 
 	"github.com/Masterminds/semver"
 	"golang.org/x/oauth2"
@@ -68,11 +69,26 @@ func NewClient(atcurl, team, username, password string) (*Client, error) {
 		return nil, err
 	}
 
+	up, err := semver.NewConstraint("< 5.5.0")
+	if err != nil {
+		return nil, err
+	}
+
 	// Check if target Concourse is less than '4.0.0'.
 	if s.Check(v) {
 		err = c.loginLegacy(username, password)
 	} else {
-		err = c.login(username, password)
+		t, err := c.login(username, password)
+		if err != nil {
+			return nil, err
+		}
+		
+		// Check if the version is less than '5.5.0'.
+		if up.Check(v) {
+			err = c.singleCookie(t)
+		} else {
+			err = c.splitToken(t)
+		}
 	}
 
 	if err != nil {
@@ -99,22 +115,8 @@ func (c *Client) info() (Info, error) {
 	return info, nil
 }
 
-// login gets an access token from Concourse.
-func (c *Client) login(username, password string) error {
-	u := fmt.Sprintf("%s/sky/token", c.atcurl)
-	config := oauth2.Config{
-		ClientID:     "fly",
-		ClientSecret: "Zmx5",
-		Endpoint:     oauth2.Endpoint{TokenURL: u},
-		Scopes:       []string{"openid", "profile", "email", "federated:id", "groups"},
-	}
-
-	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, c.conn)
-	t, err := config.PasswordCredentialsToken(ctx, username, password)
-	if err != nil {
-		return err
-	}
-
+// singleCookie add the token as a single cookie.
+func (c *Client) singleCookie(t *oauth2.Token) error {
 	c.conn.Jar.SetCookies(
 		c.atcurl,
 		[]*http.Cookie{{
@@ -123,6 +125,53 @@ func (c *Client) login(username, password string) error {
 		}},
 	)
 	return nil
+}
+
+// splitToken splits the token across multiple cookies.
+func (c *Client) splitToken(t *oauth2.Token) error {
+	const NumCookies = 15
+	const authCookieName = "skymarshal_auth"
+	const maxCookieSize = 4000
+
+	tokenStr := fmt.Sprintf("%s %s", t.TokenType, t.AccessToken)
+
+	for i := 0; i < NumCookies; i++ {
+		if len(tokenStr) > maxCookieSize {
+			c.conn.Jar.SetCookies(
+				c.atcurl,
+				[]*http.Cookie{{
+					Name:  authCookieName + strconv.Itoa(i),
+					Value: tokenStr[:maxCookieSize],
+				}},
+			)
+			tokenStr = tokenStr[maxCookieSize:]
+		} else {
+		}
+		c.conn.Jar.SetCookies(
+			c.atcurl,
+			[]*http.Cookie{{
+				Name:  authCookieName + strconv.Itoa(i),
+				Value: tokenStr,
+			}},
+		)
+		break
+	}
+
+	return nil
+}
+
+// login gets an access token from Concourse.
+func (c *Client) login(username, password string) (*oauth2.Token, error) {
+	u := fmt.Sprintf("%s/sky/token", c.atcurl)
+	config := oauth2.Config{
+		ClientID:     "fly",
+		ClientSecret: "Zmx5",
+		Endpoint:     oauth2.Endpoint{TokenURL: u},
+		Scopes:       []string{"openid", "profile", "email", "federated:id", "groups"},
+	}
+	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, c.conn)
+	t, err := config.PasswordCredentialsToken(ctx, username, password)
+	return t, err
 }
 
 // loginLegacy gets a legacy access token from Concourse.
