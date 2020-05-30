@@ -3,6 +3,7 @@ package concourse
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/cookiejar"
@@ -59,7 +60,7 @@ func NewClient(atcurl, team, username, password string) (*Client, error) {
 		return nil, err
 	}
 
-	s, err := semver.NewConstraint("< 4.0.0")
+	legacy, err := semver.NewConstraint("< 4.0.0")
 	if err != nil {
 		return nil, err
 	}
@@ -69,33 +70,53 @@ func NewClient(atcurl, team, username, password string) (*Client, error) {
 		return nil, err
 	}
 
-	up, err := semver.NewConstraint("< 5.5.0")
+	cookie, err := semver.NewConstraint("< 5.5.0")
+	if err != nil {
+		return nil, err
+	}
+
+	oldsky, err := semver.NewConstraint("< 6.0.0")
 	if err != nil {
 		return nil, err
 	}
 
 	// Check if target Concourse is less than '4.0.0'.
-	if s.Check(v) {
-		err = c.loginLegacy(username, password)
-	} else {
-		t, err := c.login(username, password)
-		if err != nil {
-			return nil, err
-		}
-		
-		// Check if the version is less than '5.5.0'.
-		if up.Check(v) {
-			err = c.singleCookie(t)
-		} else {
-			err = c.splitToken(t)
-		}
+	if legacy.Check(v) {
+		url := fmt.Sprintf("%s/api/v1/teams/%s/auth/token", c.atcurl, c.team)
+		err = c.loginLegacy(url, username, password)
+		return c, err
 	}
 
+	url := fmt.Sprintf("%s/sky/issuer/token", c.atcurl)
+	// Support 4.x and 5.x skymarshall calls
+	if oldsky.Check(v) {
+		url = fmt.Sprintf("%s/sky/token", c.atcurl)
+	}
+
+	token, err := c.login(url, username, password)
 	if err != nil {
 		return nil, err
 	}
 
-	return c, nil
+	// Check if the version is less than '5.5.0'.
+	if cookie.Check(v) {
+		err = c.singleCookie(token.TokenType, token.AccessToken)
+		return c, err
+	}
+
+	// Check if the version is less than '6.0.0'.
+	if oldsky.Check(v) {
+		err = c.splitToken(token.TokenType, token.AccessToken)
+		return c, err
+	}
+
+	idToken, ok := token.Extra("id_token").(string)
+	if !ok {
+		return c, errors.New("invalid id_token")
+	}
+
+	err = c.splitToken(token.TokenType, idToken)
+	return c, err
 }
 
 // info queries Concourse for its version information.
@@ -116,24 +137,24 @@ func (c *Client) info() (Info, error) {
 }
 
 // singleCookie add the token as a single cookie.
-func (c *Client) singleCookie(t *oauth2.Token) error {
+func (c *Client) singleCookie(tokenType, tokenValue string) error {
 	c.conn.Jar.SetCookies(
 		c.atcurl,
 		[]*http.Cookie{{
 			Name:  "skymarshal_auth",
-			Value: fmt.Sprintf("%s %s", t.TokenType, t.AccessToken),
+			Value: fmt.Sprintf("%s %s", tokenType, tokenValue),
 		}},
 	)
 	return nil
 }
 
 // splitToken splits the token across multiple cookies.
-func (c *Client) splitToken(t *oauth2.Token) error {
+func (c *Client) splitToken(tokenType, tokenValue string) error {
 	const NumCookies = 15
 	const authCookieName = "skymarshal_auth"
 	const maxCookieSize = 4000
 
-	tokenStr := fmt.Sprintf("%s %s", t.TokenType, t.AccessToken)
+	tokenStr := fmt.Sprintf("%s %s", tokenType, tokenValue)
 
 	for i := 0; i < NumCookies; i++ {
 		if len(tokenStr) > maxCookieSize {
@@ -161,12 +182,11 @@ func (c *Client) splitToken(t *oauth2.Token) error {
 }
 
 // login gets an access token from Concourse.
-func (c *Client) login(username, password string) (*oauth2.Token, error) {
-	u := fmt.Sprintf("%s/sky/token", c.atcurl)
+func (c *Client) login(url, username, password string) (*oauth2.Token, error) {
 	config := oauth2.Config{
 		ClientID:     "fly",
 		ClientSecret: "Zmx5",
-		Endpoint:     oauth2.Endpoint{TokenURL: u},
+		Endpoint:     oauth2.Endpoint{TokenURL: url},
 		Scopes:       []string{"openid", "profile", "email", "federated:id", "groups"},
 	}
 	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, c.conn)
@@ -175,10 +195,8 @@ func (c *Client) login(username, password string) (*oauth2.Token, error) {
 }
 
 // loginLegacy gets a legacy access token from Concourse.
-func (c *Client) loginLegacy(username, password string) error {
-	u := fmt.Sprintf("%s/api/v1/teams/%s/auth/token", c.atcurl, c.team)
-
-	req, err := http.NewRequest("GET", u, nil)
+func (c *Client) loginLegacy(url, username, password string) error {
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return err
 	}
