@@ -373,3 +373,50 @@ func TestBuildMessage(t *testing.T) {
 		})
 	}
 }
+
+func TestPreviousBuildName(t *testing.T) {
+	cases := map[string]struct {
+		build string
+		want  string
+
+		err bool
+	}{
+		"standard": {
+			build: "6",
+			want:  "6",
+		},
+		"rerun 1": {
+			build: "6.1",
+			want:  "6",
+		},
+		"rerun x": {
+			build: "6.2",
+			want:  "6.1",
+		},
+		"error 1": {
+			build: "X",
+			err:   true,
+		},
+		"error x": {
+			build: "6.X",
+			err:   true,
+		},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			got, err := previousBuildName(c.build)
+			if err != nil && !c.err {
+				t.Fatalf("unexpected error from previousBuildName:\n\t(ERR): %s", err)
+			} else if err == nil && c.err {
+				t.Fatalf("expected an error from previousBuildName:\n\t(GOT): nil")
+			} else if err != nil && c.err {
+				return
+			}
+
+			if err != nil {
+				t.Fatalf("unexpected value from previousBuildName:\n\t(GOT): %#v\n\t(WNT): %#v", got, c.want)
+			}
+		})
+	}
+}

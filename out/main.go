@@ -77,17 +77,38 @@ func previousBuildStatus(input *concourse.OutRequest, m concourse.BuildMetadata)
 		return "", fmt.Errorf("error connecting to Concourse: %s", err)
 	}
 
-	no, err := strconv.Atoi(m.BuildName)
+	p, err := previousBuildName(m.BuildName)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("error parsing build name: %s", err)
 	}
 
-	previous, err := c.JobBuild(m.PipelineName, m.JobName, strconv.Itoa(no-1))
+	previous, err := c.JobBuild(m.PipelineName, m.JobName, p)
 	if err != nil {
 		return "", fmt.Errorf("error requesting Concourse build status: %s", err)
 	}
 
 	return previous.Status, nil
+}
+
+func previousBuildName(s string) (string, error) {
+	strs := strings.Split(s, ".")
+
+	if len(strs) == 1 {
+		i, err := strconv.Atoi(strs[0])
+		if err != nil {
+			return "", err
+		}
+
+		return strconv.Itoa(i - 1), nil
+	}
+
+	i, err := strconv.Atoi(strs[1])
+	if err != nil {
+		return "", err
+	}
+
+	s = fmt.Sprintf("%s.%s", strs[0], strconv.Itoa(i-1))
+	return strings.Trim(s, ".0"), nil
 }
 
 func out(input *concourse.OutRequest, path string) (*concourse.OutResponse, error) {
