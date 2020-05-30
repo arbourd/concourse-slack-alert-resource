@@ -6,6 +6,7 @@ import "github.com/arbourd/concourse-slack-alert-resource/concourse"
 type Alert struct {
 	Type        string
 	Channel     string
+	ChannelFile string
 	Color       string
 	IconURL     string
 	Message     string
@@ -83,5 +84,6 @@ func NewAlert(input *concourse.OutRequest) Alert {
 		alert.Color = input.Params.Color
 	}
 	alert.MessageFile = input.Params.MessageFile
+	alert.ChannelFile = input.Params.ChannelFile
 	return alert
 }

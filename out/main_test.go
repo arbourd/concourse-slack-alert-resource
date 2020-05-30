@@ -267,13 +267,13 @@ func TestBuildMessage(t *testing.T) {
 			alert: Alert{
 				Type:        "default",
 				Message:     "Testing",
-				MessageFile: "message_file",
+				MessageFile: "test_file",
 			},
 			want: &slack.Message{
 				Attachments: []slack.Attachment{
 					{
-						Fallback:   "message file: demo/test/1 -- https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1",
-						AuthorName: "message file",
+						Fallback:   "filecontents: demo/test/1 -- https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1",
+						AuthorName: "filecontents",
 						Fields: []slack.Field{
 							{Title: "Job", Value: "demo/test", Short: true},
 							{Title: "Build", Value: "1", Short: true},
@@ -286,7 +286,7 @@ func TestBuildMessage(t *testing.T) {
 			alert: Alert{
 				Type:        "default",
 				Message:     "Testing",
-				MessageFile: "bad file",
+				MessageFile: "missing file",
 			},
 			want: &slack.Message{
 				Attachments: []slack.Attachment{
@@ -299,6 +299,44 @@ func TestBuildMessage(t *testing.T) {
 						},
 						Footer: "https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1", FooterIcon: ""},
 				},
+			},
+		},
+		"channel file": {
+			alert: Alert{
+				Type:        "default",
+				Channel:     "testchannel",
+				ChannelFile: "test_file",
+			},
+			want: &slack.Message{
+				Attachments: []slack.Attachment{
+					{
+						Fallback: ": demo/test/1 -- https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1",
+						Fields: []slack.Field{
+							{Title: "Job", Value: "demo/test", Short: true},
+							{Title: "Build", Value: "1", Short: true},
+						},
+						Footer: "https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1", FooterIcon: ""},
+				},
+				Channel: "filecontents",
+			},
+		},
+		"channel file failure": {
+			alert: Alert{
+				Type:        "default",
+				Channel:     "testchannel",
+				ChannelFile: "missing file",
+			},
+			want: &slack.Message{
+				Attachments: []slack.Attachment{
+					{
+						Fallback: ": demo/test/1 -- https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1",
+						Fields: []slack.Field{
+							{Title: "Job", Value: "demo/test", Short: true},
+							{Title: "Build", Value: "1", Short: true},
+						},
+						Footer: "https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1", FooterIcon: ""},
+				},
+				Channel: "testchannel",
 			},
 		},
 	}
@@ -315,7 +353,7 @@ func TestBuildMessage(t *testing.T) {
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			path := ""
-			if c.alert.MessageFile != "" {
+			if c.alert.MessageFile != "" || c.alert.ChannelFile != "" {
 				dir, err := ioutil.TempDir("", "example")
 				if err != nil {
 					t.Fatal(err)
@@ -323,7 +361,7 @@ func TestBuildMessage(t *testing.T) {
 				path = dir
 
 				defer os.RemoveAll(dir)
-				if err := ioutil.WriteFile(filepath.Join(dir, "message_file"), []byte("message file"), 0666); err != nil {
+				if err := ioutil.WriteFile(filepath.Join(dir, "test_file"), []byte("filecontents"), 0666); err != nil {
 					t.Fatal(err)
 				}
 			}

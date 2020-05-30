@@ -17,6 +17,7 @@ import (
 
 func buildMessage(alert Alert, m concourse.BuildMetadata, path string) *slack.Message {
 	message := alert.Message
+	channel := alert.Channel
 
 	// Open and read message file if set
 	if alert.MessageFile != "" {
@@ -27,6 +28,18 @@ func buildMessage(alert Alert, m concourse.BuildMetadata, path string) *slack.Me
 			fmt.Fprintf(os.Stderr, "error reading message_file: %v\nwill default to message instead\n", err)
 		} else {
 			message = strings.TrimSpace(string(f))
+		}
+	}
+
+	// Open and read channel file if set
+	if alert.ChannelFile != "" {
+		file := filepath.Join(path, alert.ChannelFile)
+		f, err := ioutil.ReadFile(file)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error reading channel_file: %v\nwill default to channel instead\n", err)
+		} else {
+			channel = strings.TrimSpace(string(f))
 		}
 	}
 
@@ -50,7 +63,7 @@ func buildMessage(alert Alert, m concourse.BuildMetadata, path string) *slack.Me
 		},
 	}
 
-	return &slack.Message{Attachments: []slack.Attachment{attachment}, Channel: alert.Channel}
+	return &slack.Message{Attachments: []slack.Attachment{attachment}, Channel: channel}
 }
 
 func previousBuildStatus(input *concourse.OutRequest, m concourse.BuildMetadata) (string, error) {
@@ -84,33 +97,38 @@ func out(input *concourse.OutRequest, path string) (*concourse.OutResponse, erro
 
 	alert := NewAlert(input)
 	metadata := concourse.NewBuildMetadata(input.Source.ConcourseURL)
-	send := !alert.Disabled
+	if alert.Disabled {
+		return buildOut(alert.Type, alert.Channel, false), nil
+	}
 
-	if send && (alert.Type == "fixed" || alert.Type == "broke") {
-		status, err := previousBuildStatus(input, metadata)
+	if alert.Type == "fixed" || alert.Type == "broke" {
+		pstatus, err := previousBuildStatus(input, metadata)
 		if err != nil {
 			return nil, fmt.Errorf("error getting last build status: %v", err)
 		}
-		send = (alert.Type == "fixed" && status != "succeeded") || (alert.Type == "broke" && status == "succeeded")
-	}
 
-	if send {
-		message := buildMessage(alert, metadata, path)
-		err := slack.Send(input.Source.URL, message)
-		if err != nil {
-			return nil, fmt.Errorf("error sending slack message: %v", err)
+		if (alert.Type == "fixed" && pstatus == "succeeded") || (alert.Type == "broke" && pstatus != "succeeded") {
+			return buildOut(alert.Type, alert.Channel, false), nil
 		}
 	}
 
-	out := &concourse.OutResponse{
+	message := buildMessage(alert, metadata, path)
+	err := slack.Send(input.Source.URL, message)
+	if err != nil {
+		return nil, fmt.Errorf("error sending slack message: %v", err)
+	}
+	return buildOut(alert.Type, message.Channel, true), nil
+}
+
+func buildOut(atype string, channel string, alerted bool) *concourse.OutResponse {
+	return &concourse.OutResponse{
 		Version: concourse.Version{"ver": "static"},
 		Metadata: []concourse.Metadata{
-			{Name: "type", Value: alert.Type},
-			{Name: "channel", Value: alert.Channel},
-			{Name: "alerted", Value: strconv.FormatBool(send)},
+			{Name: "type", Value: atype},
+			{Name: "channel", Value: channel},
+			{Name: "alerted", Value: strconv.FormatBool(alerted)},
 		},
 	}
-	return out, nil
 }
 
 func main() {
