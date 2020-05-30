@@ -97,37 +97,38 @@ func out(input *concourse.OutRequest, path string) (*concourse.OutResponse, erro
 
 	alert := NewAlert(input)
 	metadata := concourse.NewBuildMetadata(input.Source.ConcourseURL)
-	send := !alert.Disabled
+	if alert.Disabled {
+		return buildOut(alert.Type, alert.Channel, false), nil
+	}
 
-	if send && (alert.Type == "fixed" || alert.Type == "broke") {
-		status, err := previousBuildStatus(input, metadata)
+	if alert.Type == "fixed" || alert.Type == "broke" {
+		pstatus, err := previousBuildStatus(input, metadata)
 		if err != nil {
 			return nil, fmt.Errorf("error getting last build status: %v", err)
 		}
-		send = (alert.Type == "fixed" && status != "succeeded") || (alert.Type == "broke" && status == "succeeded")
-	}
 
-	out := &concourse.OutResponse{
-		Version: concourse.Version{"ver": "static"},
-		Metadata: []concourse.Metadata{
-			{Name: "type", Value: alert.Type},
-			{Name: "alerted", Value: strconv.FormatBool(send)},
-		},
-	}
-	
-	if send {
-		message := buildMessage(alert, metadata, path)
-		out.Metadata = append(out.Metadata, concourse.Metadata{
-			Name: "channel", Value: message.Channel,
-		})
-		err := slack.Send(input.Source.URL, message)
-		if err != nil {
-			return nil, fmt.Errorf("error sending slack message: %v", err)
+		if (alert.Type == "fixed" && pstatus == "succeeded") || (alert.Type == "broke" && pstatus != "succeeded") {
+			return buildOut(alert.Type, alert.Channel, false), nil
 		}
 	}
 
+	message := buildMessage(alert, metadata, path)
+	err := slack.Send(input.Source.URL, message)
+	if err != nil {
+		return nil, fmt.Errorf("error sending slack message: %v", err)
+	}
+	return buildOut(alert.Type, message.Channel, true), nil
+}
 
-	return out, nil
+func buildOut(atype string, channel string, alerted bool) *concourse.OutResponse {
+	return &concourse.OutResponse{
+		Version: concourse.Version{"ver": "static"},
+		Metadata: []concourse.Metadata{
+			{Name: "type", Value: atype},
+			{Name: "channel", Value: channel},
+			{Name: "alerted", Value: strconv.FormatBool(alerted)},
+		},
+	}
 }
 
 func main() {
