@@ -8,44 +8,64 @@ import (
 	"reflect"
 	"strings"
 	"testing"
-
-	"golang.org/x/oauth2"
 )
 
 const tokenType = "Bearer"
-const accessToken = "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJjc3JmIjoiMDM3YWQ5Zjk5OGMyYmViZDg1MGMzN2NkOTkwMGE2YjdmOTZjOTkwYzk4ZDk3YWQyNjliYTU2N2IyMTI5MjJkZCIsImV4cCI6MTUzMDc0NzA5NiwiaXNBZG1pbiI6dHJ1ZSwidGVhbU5hbWUiOiJtYWluIn0.YL11IVWLlkx5xV_aX7DT0f_Y_FIA8NS5jOndZFw8paJBUVv-_brvTAD9hn4t6FPw0o2gsub1jHB2E4l-VB954_iQ-SfWyzDx0idegYrLlcgsXHhPWku1hW1JBjvq3BhjkKgAuZCW4JP5UulglObaKKFFhYycMZiiiWcKM_zMpn7ebgP6giEemSRj06Bpc5EKAZeZjt0Tv3AqEKd693qI9XJp49LJwZJP_RZgCoXMduLQpm3UmIQppwzFUEyIcAfXJmYvi3utr_JjxfuVuwqZbsemf_fCxRGgkUcwRBwBnlRqvBUdErk63HYAL7t4pdk9mzb61U5OPK9XT8NS195IHw"
 
 func TestNewClient(t *testing.T) {
 	cases := map[string]struct {
+		version  string
+		public   bool
 		username string
 		password string
 
-		version string
-		public  bool
+		token   string
+		idToken string
 		err     bool
 	}{
 		"public": {
-			public: true,
+			version: "6.0.0",
+			public:  true,
 		},
-		"legacy": {
+		"legacy auth": {
+			version:  "3.14.2",
 			username: "admin",
 			password: "sup3rs3cret1",
 
-			version: "3.14.2",
+			token: "legacy",
 		},
-		"skymarshal": {
+		"legacy skymarshal": {
+			version:  "4.0.0",
 			username: "admin",
 			password: "sup3rs3cret1",
 
-			version: "4.0.0",
+			token: "access-token",
 		},
 		"multi cookie": {
+			version:  "5.5.0",
 			username: "admin",
 			password: "sup3rs3cret1",
 
-			version: "5.5.0",
+			token: "multi-cookie",
+		},
+		"skymarshal": {
+			version:  "6.0.0",
+			username: "admin",
+			password: "sup3rs3cret1",
+
+			token:   "new-access-token",
+			idToken: "id-token",
+		},
+		"missing id token": {
+			version:  "6.0.0",
+			username: "admin",
+			password: "sup3rs3cret1",
+
+			token: "new-access-token",
+			err:   true,
 		},
 		"unauthorized": {
+			version:  "6.0.0",
 			username: "admin",
 			password: "sup3rs3cret1",
 
@@ -54,24 +74,27 @@ func TestNewClient(t *testing.T) {
 	}
 
 	for name, c := range cases {
+		info := Info{ATCVersion: c.version}
+		legacy := Token{Type: tokenType, Value: c.token}
+		oldsky := map[string]string{"token_type": tokenType, "access_token": c.token}
+		sky := map[string]string{"token_type": tokenType, "access_token": c.token, "id_token": c.idToken}
+		if c.idToken == "" {
+			sky = oldsky
+		}
+
 		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if c.err {
-				http.Error(w, "", http.StatusUnauthorized)
-			}
-
-			version := c.version
-			if version == "" {
-				version = "5.5.0"
-			}
-
 			var resp []byte
 			switch r.RequestURI {
 			case "/api/v1/info":
-				resp, _ = json.Marshal(Info{ATCVersion: version})
+				resp, _ = json.Marshal(info)
+			case "/api/v1/teams/main/auth/token":
+				resp, _ = json.Marshal(legacy)
 			case "/sky/token":
-				resp, _ = json.Marshal(oauth2.Token{TokenType: tokenType, AccessToken: accessToken})
+				resp, _ = json.Marshal(oldsky)
+			case "/sky/issuer/token":
+				resp, _ = json.Marshal(sky)
 			default:
-				resp, _ = json.Marshal(Token{Type: tokenType, Value: accessToken})
+				http.Error(w, "", http.StatusUnauthorized)
 			}
 
 			w.Header().Set("Content-Type", "application/json")
@@ -100,7 +123,10 @@ func TestNewClient(t *testing.T) {
 
 			// Test client cookie conditions (if pipeline is not public).
 			cv := client.conn.Jar.Cookies(client.atcurl)[0].Value
-			wnt := strings.Join([]string{tokenType, accessToken}, " ")
+			wnt := strings.Join([]string{tokenType, c.token}, " ")
+			if c.idToken != "" {
+				wnt = strings.Join([]string{tokenType, c.idToken}, " ")
+			}
 			if cv != wnt {
 				t.Fatalf("unexpected Client.conn cookie from NewClient:\n\t(GOT): %#v\n\t(WNT): %#v", cv, wnt)
 			}
