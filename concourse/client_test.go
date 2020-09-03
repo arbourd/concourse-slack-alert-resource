@@ -24,7 +24,7 @@ func TestNewClient(t *testing.T) {
 		err     bool
 	}{
 		"public": {
-			version: "6.0.0",
+			version: "6.5.0",
 			public:  true,
 		},
 		"legacy auth": {
@@ -48,13 +48,20 @@ func TestNewClient(t *testing.T) {
 
 			token: "multi-cookie",
 		},
-		"skymarshal": {
+		"skymarshal id token": {
 			version:  "6.0.0",
 			username: "admin",
 			password: "sup3rs3cret1",
 
 			token:   "new-access-token",
 			idToken: "id-token",
+		},
+		"skymarshal access token": {
+			version:  "6.5.0",
+			username: "admin",
+			password: "sup3rs3cret1",
+
+			token: "new-access-token",
 		},
 		"missing id token": {
 			version:  "6.0.0",
@@ -65,7 +72,7 @@ func TestNewClient(t *testing.T) {
 			err:   true,
 		},
 		"unauthorized": {
-			version:  "6.0.0",
+			version:  "6.5.0",
 			username: "admin",
 			password: "sup3rs3cret1",
 
