@@ -70,7 +70,7 @@ func NewClient(atcurl, team, username, password string) (*Client, error) {
 		return nil, err
 	}
 
-	cookie, err := semver.NewConstraint("< 5.5.0")
+	multiCookie, err := semver.NewConstraint("5.5 - 6.4")
 	if err != nil {
 		return nil, err
 	}
@@ -98,8 +98,9 @@ func NewClient(atcurl, team, username, password string) (*Client, error) {
 		return nil, err
 	}
 
-	// Check if the version is less than '5.5.0'.
-	if cookie.Check(v) {
+	// Check if the version supports single cookie access tokens.
+	// Single cookie is used between versions 4.0.0 - 5.5.0 and 6.5.0 or greater.
+	if !multiCookie.Check(v) {
 		err = c.singleCookie(token.TokenType, token.AccessToken)
 		return c, err
 	}
