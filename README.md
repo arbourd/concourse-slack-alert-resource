@@ -49,7 +49,7 @@ Sends a structured message to Slack based on the alert type.
 - `channel_file`: *Optional.* File containing text which overrides `channel`. If the file cannot be read, `channel` will be used instead.
 - `message`: *Optional.* The status message at the top of the alert. Defaults to name of alert type.
 - `message_file`: *Optional.* File containing text which overrides `message`. If the file cannot be read, `message` will be used instead.
-- `text`: *Optional.* The status text at the top of the alert. Defaults to name of alert type.
+- `text`: *Optional.* Additional text below the message of the alert. Defaults to an empty string.
 - `text_file`: *Optional.* File containing text which overrides `text`. If the file cannot be read, `text` will be used instead.
 - `color`: *Optional.* The color of the notification bar as a hexadecimal. Defaults to the icon color of the alert type.
 - `disable`: *Optional.* Disables the alert. Defaults to `false`.
