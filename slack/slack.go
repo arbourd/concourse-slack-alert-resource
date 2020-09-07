@@ -23,6 +23,7 @@ type Attachment struct {
 	Fields     []Field `json:"fields"`
 	Footer     string  `json:"footer"`
 	FooterIcon string  `json:"footer_icon"`
+	Text       string  `json:"text"`
 }
 
 // Field represents a Slack API message attachment's fields

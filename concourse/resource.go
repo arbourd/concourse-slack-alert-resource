@@ -37,6 +37,8 @@ type OutParams struct {
 	Color       string `json:"color"`
 	Message     string `json:"message"`
 	MessageFile string `json:"message_file"`
+	Text        string `json:"text"`
+	TextFile    string `json:"text_file"`
 	Disable     bool   `json:"disable"`
 }
 
