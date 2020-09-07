@@ -18,6 +18,7 @@ import (
 func buildMessage(alert Alert, m concourse.BuildMetadata, path string) *slack.Message {
 	message := alert.Message
 	channel := alert.Channel
+	text := alert.Text
 
 	// Open and read message file if set
 	if alert.MessageFile != "" {
@@ -43,6 +44,18 @@ func buildMessage(alert Alert, m concourse.BuildMetadata, path string) *slack.Me
 		}
 	}
 
+	// Open and read text file if set
+	if alert.TextFile != "" {
+		file := filepath.Join(path, alert.TextFile)
+		f, err := ioutil.ReadFile(file)
+
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "error reading text_file: %v\nwill default to text instead\n", err)
+		} else {
+			text = strings.TrimSpace(string(f))
+		}
+	}
+
 	attachment := slack.Attachment{
 		Fallback:   fmt.Sprintf("%s -- %s", fmt.Sprintf("%s: %s/%s/%s", message, m.PipelineName, m.JobName, m.BuildName), m.URL),
 		AuthorName: message,
@@ -61,6 +74,7 @@ func buildMessage(alert Alert, m concourse.BuildMetadata, path string) *slack.Me
 				Short: true,
 			},
 		},
+		Text: text,
 	}
 
 	return &slack.Message{Attachments: []slack.Attachment{attachment}, Channel: channel}

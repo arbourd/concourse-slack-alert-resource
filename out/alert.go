@@ -11,6 +11,8 @@ type Alert struct {
 	IconURL     string
 	Message     string
 	MessageFile string
+	Text        string
+	TextFile    string
 	Disabled    bool
 }
 
@@ -73,17 +75,23 @@ func NewAlert(input *concourse.OutRequest) Alert {
 	if alert.Disabled == false {
 		alert.Disabled = input.Source.Disable
 	}
+
 	alert.Channel = input.Params.Channel
 	if alert.Channel == "" {
 		alert.Channel = input.Source.Channel
 	}
+	alert.ChannelFile = input.Params.ChannelFile
+
 	if input.Params.Message != "" {
 		alert.Message = input.Params.Message
 	}
+	alert.MessageFile = input.Params.MessageFile
+
 	if input.Params.Color != "" {
 		alert.Color = input.Params.Color
 	}
-	alert.MessageFile = input.Params.MessageFile
-	alert.ChannelFile = input.Params.ChannelFile
+
+	alert.Text = input.Params.Text
+	alert.TextFile = input.Params.TextFile
 	return alert
 }
