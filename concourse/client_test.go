@@ -42,14 +42,14 @@ func TestNewClient(t *testing.T) {
 			token: "access-token",
 		},
 		"multi cookie": {
-			version:  "5.5.0",
+			version:  "6.0.0",
 			username: "admin",
 			password: "sup3rs3cret1",
 
 			token: "multi-cookie",
 		},
 		"skymarshal id token": {
-			version:  "6.0.0",
+			version:  "6.1.0",
 			username: "admin",
 			password: "sup3rs3cret1",
 
@@ -64,7 +64,7 @@ func TestNewClient(t *testing.T) {
 			token: "new-access-token",
 		},
 		"missing id token": {
-			version:  "6.0.0",
+			version:  "6.1.0",
 			username: "admin",
 			password: "sup3rs3cret1",
 

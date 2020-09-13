@@ -75,7 +75,7 @@ func NewClient(atcurl, team, username, password string) (*Client, error) {
 		return nil, err
 	}
 
-	oldsky, err := semver.NewConstraint("< 6.0.0")
+	oldsky, err := semver.NewConstraint("< 6.1.0")
 	if err != nil {
 		return nil, err
 	}
@@ -105,7 +105,7 @@ func NewClient(atcurl, team, username, password string) (*Client, error) {
 		return c, err
 	}
 
-	// Check if the version is less than '6.0.0'.
+	// Check if the version is less than '6.1.0'.
 	if oldsky.Check(v) {
 		err = c.splitToken(token.TokenType, token.AccessToken)
 		return c, err
