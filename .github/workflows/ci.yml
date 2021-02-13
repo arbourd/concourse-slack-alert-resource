@@ -25,14 +25,21 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - run: docker build -t concourse-slack-alert-resource:$GITHUB_RUN_ID-$GITHUB_RUN_NUMBER .
+      - uses: docker/setup-buildx-action@v1
+      - uses: docker/setup-qemu-action@v1
+      - uses: docker/build-push-action@v2
+        with:
+          cache-from: type=registry,ref=docker.io/arbourd/concourse-slack-alert-resource:main
+          platforms: linux/amd64,linux/arm64
+          tags: docker.io/arbourd/concourse-slack-alert-resource:${{ github.run_id }}-${{ github.run_number }}
+
       - run: >
           echo "{\"source\":{\"url\":\"${{ secrets.URL }}\"}}" | docker run -i
           -e "BUILD_TEAM_NAME=main"
           -e "BUILD_PIPELINE_NAME=github-actions"
           -e "BUILD_JOB_NAME=test"
-          -e "BUILD_NAME=$GITHUB_RUN_ID-$GITHUB_RUN_NUMBER"
-          concourse-slack-alert-resource:$GITHUB_RUN_ID-$GITHUB_RUN_NUMBER
+          -e "BUILD_NAME=${{ github.run_id }}-${{ github.run_number }}"
+          docker.io/arbourd/concourse-slack-alert-resource:${{ github.run_id }}-${{ github.run_number }}
           /opt/resource/out $PWD
 
   publish:
@@ -59,7 +66,7 @@ jobs:
       - name: build and publish image
         uses: docker/build-push-action@v2
         with:
-          cache-from: type=registry,ref=docker.io/arbourd/concourse-slack-alert-resource:latest
+          cache-from: type=registry,ref=docker.io/arbourd/concourse-slack-alert-resource:main
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.docker_meta.outputs.tags }}
