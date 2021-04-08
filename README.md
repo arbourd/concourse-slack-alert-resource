@@ -76,6 +76,10 @@ Sends a structured message to Slack based on the alert type.
 
   <img src="./img/aborted.png" width="50%">
 
+- `errored`
+
+  <img src="./img/errored.png" width="50%">
+
 - `fixed`
 
   Fixed is a special alert type that only alerts if the previous build did not succeed. Fixed requires `username` and `password` to be set for the resource if the pipeline is not public.
@@ -138,6 +142,10 @@ jobs:
       put: notify
       params:
         alert_type: aborted
+    on_error:
+      put: notify
+      params:
+        alert_type: errored
 ```
 
 Using the `fixed` alert type:

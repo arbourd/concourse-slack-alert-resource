@@ -56,6 +56,10 @@ func TestNewAlert(t *testing.T) {
 			input: &concourse.OutRequest{Params: concourse.OutParams{AlertType: "broke"}},
 			want:  Alert{Type: "broke", Color: "#d00000", IconURL: "https://ci.concourse-ci.org/public/images/favicon-failed.png", Message: "Broke"},
 		},
+		"errored": {
+			input: &concourse.OutRequest{Params: concourse.OutParams{AlertType: "errored"}},
+			want:  Alert{Type: "errored", Color: "#f5a623", IconURL: "https://ci.concourse-ci.org/public/images/favicon-errored.png", Message: "Errored"},
+		},
 	}
 
 	for name, c := range cases {
