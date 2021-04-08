@@ -62,6 +62,13 @@ func NewAlert(input *concourse.OutRequest) Alert {
 			IconURL: "https://ci.concourse-ci.org/public/images/favicon-failed.png",
 			Message: "Broke",
 		}
+	case "errored":
+		alert = Alert{
+			Type:    "errored",
+			Color:   "#f5a623",
+			IconURL: "https://ci.concourse-ci.org/public/images/favicon-errored.png",
+			Message: "Errored",
+		}
 	default:
 		alert = Alert{
 			Type:    "default",
