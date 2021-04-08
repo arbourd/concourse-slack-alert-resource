@@ -50,11 +50,13 @@ jobs:
           username: arbourd
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      - uses: crazy-max/ghaction-docker-meta@v1
+      - uses: crazy-max/ghaction-docker-meta@v2
         id: docker_meta
         with:
           images: docker.io/arbourd/concourse-slack-alert-resource
-          tag-match: v(.*)
+          tags: |
+            type=ref,event=branch
+            type=ref,event=tag
 
       - name: build and publish image
         uses: docker/build-push-action@v2
