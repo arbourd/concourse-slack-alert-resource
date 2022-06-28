@@ -16,14 +16,16 @@ func TestNewBuildMetadata(t *testing.T) {
 	}
 
 	cases := map[string]struct {
-		host string
-		want BuildMetadata
+		host         string
+		instanceVars string
+		want         BuildMetadata
 	}{
 		"environment only": {
 			want: BuildMetadata{
 				Host:         "https://ci.example.com",
 				TeamName:     "main",
 				PipelineName: "demo",
+				InstanceVars: "",
 				JobName:      "my test",
 				BuildName:    "1",
 				URL:          "https://ci.example.com/teams/main/pipelines/demo/jobs/my%20test/builds/1",
@@ -35,9 +37,22 @@ func TestNewBuildMetadata(t *testing.T) {
 				Host:         "https://example.com",
 				TeamName:     "main",
 				PipelineName: "demo",
+				InstanceVars: "",
 				JobName:      "my test",
 				BuildName:    "1",
 				URL:          "https://example.com/teams/main/pipelines/demo/jobs/my%20test/builds/1",
+			},
+		},
+		"url with instance vars": {
+			instanceVars: `{"image_name":"my-image","pr_number":"1234"}`,
+			want: BuildMetadata{
+				Host:         "https://ci.example.com",
+				TeamName:     "main",
+				PipelineName: "demo",
+				InstanceVars: `{"image_name":"my-image","pr_number":"1234"}`,
+				JobName:      "my test",
+				BuildName:    "1",
+				URL:          `https://ci.example.com/teams/main/pipelines/demo/jobs/my%20test/builds/1?vars.image_name=%22my-image%22&vars.pr_number=%221234%22`,
 			},
 		},
 	}
@@ -46,6 +61,11 @@ func TestNewBuildMetadata(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			for k, v := range env {
 				os.Setenv(k, v)
+			}
+			if c.instanceVars != "" {
+				os.Setenv("BUILD_PIPELINE_INSTANCE_VARS", c.instanceVars)
+			} else {
+				os.Unsetenv("BUILD_PIPELINE_INSTANCE_VARS")
 			}
 
 			metadata := NewBuildMetadata(c.host)
