@@ -51,23 +51,24 @@ func NewBuildMetadata(atcurl string) BuildMetadata {
 		BuildName:    os.Getenv("BUILD_NAME"),
 	}
 
-	queryString := ""
+	instanceVars := ""
 	if metadata.InstanceVars != "" {
 		jsonMap := make(map[string]string)
 		err := json.Unmarshal([]byte(metadata.InstanceVars), &jsonMap)
 		if err != nil {
-			panic(err)
+			panic(fmt.Sprintf("could not unmarshall $BUILD_PIPELINE_INSTANCE_VARS: %s", metadata.InstanceVars))
 		}
+
 		query := &url.Values{}
 		for key, value := range jsonMap {
 			key = fmt.Sprintf("vars.%s", key)
 			value = fmt.Sprintf(`"%s"`, value)
 			query.Set(key, value)
 		}
-		queryString = fmt.Sprintf("?%s", query.Encode())
+		instanceVars = fmt.Sprintf("?%s", query.Encode())
 	}
 
-	// "$HOST/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME" + optional query params
+	// "$HOST/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME$BUILD_PIPELINE_INSTANCE_VARS"
 	metadata.URL = fmt.Sprintf(
 		"%s/teams/%s/pipelines/%s/jobs/%s/builds/%s%s",
 		metadata.Host,
@@ -75,7 +76,7 @@ func NewBuildMetadata(atcurl string) BuildMetadata {
 		url.PathEscape(metadata.PipelineName),
 		url.PathEscape(metadata.JobName),
 		url.PathEscape(metadata.BuildName),
-		queryString,
+		instanceVars,
 	)
 
 	return metadata
