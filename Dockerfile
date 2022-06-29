@@ -1,15 +1,11 @@
 FROM golang:1.18-alpine AS build
-
-RUN apk --no-cache add --update git
-RUN mkdir -p /go/src/github.com/arbourd/concourse-slack-alert-resource
-
-ENV CGO_ENABLED 0
 WORKDIR /go/src/github.com/arbourd/concourse-slack-alert-resource
+RUN apk --no-cache add --update git
 
-COPY go.mod go.sum /go/src/github.com/arbourd/concourse-slack-alert-resource/
+COPY go.* .
 RUN go mod download
 
-COPY . /go/src/github.com/arbourd/concourse-slack-alert-resource
+COPY . .
 RUN go build -o /check github.com/arbourd/concourse-slack-alert-resource/check
 RUN go build -o /in github.com/arbourd/concourse-slack-alert-resource/in
 RUN go build -o /out github.com/arbourd/concourse-slack-alert-resource/out
