@@ -2,7 +2,7 @@ FROM golang:1.18-alpine AS build
 WORKDIR /go/src/github.com/arbourd/concourse-slack-alert-resource
 RUN apk --no-cache add --update git
 
-COPY go.* .
+COPY go.* ./
 RUN go mod download
 
 COPY . ./
