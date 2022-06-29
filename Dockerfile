@@ -5,7 +5,7 @@ RUN apk --no-cache add --update git
 COPY go.* .
 RUN go mod download
 
-COPY . .
+COPY . ./
 RUN go build -o /check github.com/arbourd/concourse-slack-alert-resource/check
 RUN go build -o /in github.com/arbourd/concourse-slack-alert-resource/in
 RUN go build -o /out github.com/arbourd/concourse-slack-alert-resource/out
