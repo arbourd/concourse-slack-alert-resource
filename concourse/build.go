@@ -1,6 +1,7 @@
 package concourse
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -27,6 +28,7 @@ type BuildMetadata struct {
 	ID           string
 	TeamName     string
 	PipelineName string
+	InstanceVars string
 	JobName      string
 	BuildName    string
 	URL          string
@@ -44,18 +46,36 @@ func NewBuildMetadata(atcurl string) BuildMetadata {
 		ID:           os.Getenv("BUILD_ID"),
 		TeamName:     os.Getenv("BUILD_TEAM_NAME"),
 		PipelineName: os.Getenv("BUILD_PIPELINE_NAME"),
+		InstanceVars: os.Getenv("BUILD_PIPELINE_INSTANCE_VARS"),
 		JobName:      os.Getenv("BUILD_JOB_NAME"),
 		BuildName:    os.Getenv("BUILD_NAME"),
 	}
 
-	// "$HOST/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME"
+	queryString := ""
+	if metadata.InstanceVars != "" {
+		jsonMap := make(map[string]string)
+		err := json.Unmarshal([]byte(metadata.InstanceVars), &jsonMap)
+		if err != nil {
+			panic(err)
+		}
+		query := &url.Values{}
+		for key, value := range jsonMap {
+			key = fmt.Sprintf("vars.%s", key)
+			value = fmt.Sprintf(`"%s"`, value)
+			query.Set(key, value)
+		}
+		queryString = fmt.Sprintf("?%s", query.Encode())
+	}
+
+	// "$HOST/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME" + optional query params
 	metadata.URL = fmt.Sprintf(
-		"%s/teams/%s/pipelines/%s/jobs/%s/builds/%s",
+		"%s/teams/%s/pipelines/%s/jobs/%s/builds/%s%s",
 		metadata.Host,
 		url.PathEscape(metadata.TeamName),
 		url.PathEscape(metadata.PipelineName),
 		url.PathEscape(metadata.JobName),
 		url.PathEscape(metadata.BuildName),
+		queryString,
 	)
 
 	return metadata
