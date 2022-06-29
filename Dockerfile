@@ -4,7 +4,6 @@ RUN apk --no-cache add --update git
 RUN mkdir -p /go/src/github.com/arbourd/concourse-slack-alert-resource
 
 ENV CGO_ENABLED 0
-ENV GO111MODULE on
 WORKDIR /go/src/github.com/arbourd/concourse-slack-alert-resource
 
 COPY go.mod go.sum /go/src/github.com/arbourd/concourse-slack-alert-resource/
