@@ -50,7 +50,7 @@ jobs:
           username: arbourd
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      - uses: crazy-max/ghaction-docker-meta@v2
+      - uses: crazy-max/ghaction-docker-meta@v4
         id: docker_meta
         with:
           images: docker.io/arbourd/concourse-slack-alert-resource
