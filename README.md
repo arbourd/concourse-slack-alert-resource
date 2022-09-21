@@ -6,7 +6,7 @@ A structured and opinionated Slack notification resource for [Concourse](https:/
 
 <img src="./img/default.png" width="60%">
 
-The message is built by using Concourse's [resource metadata](https://concourse-ci.org/implementing-resources.html#resource-metadata) to show the pipeline, job, build number and a URL.
+The message is built by using Concourse's [resource metadata](https://concourse-ci.org/implementing-resource-types.html#resource-metadata) to show the pipeline, job, build number and a URL.
 
 ## Installing
 
