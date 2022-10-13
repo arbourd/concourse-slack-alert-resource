@@ -10,15 +10,16 @@ import (
 
 // A Build is a build's data from the undocumented Concourse API.
 type Build struct {
-	ID        int    `json:"id"`
-	Team      string `json:"team_name"`
-	Name      string `json:"name"`
-	Status    string `json:"status"`
-	Job       string `json:"job_name"`
-	APIURL    string `json:"api_url"`
-	Pipeline  string `json:"pipeline_name"`
-	StartTime int    `json:"start_time"`
-	EndTime   int    `json:"end_time"`
+	ID           int               `json:"id"`
+	Team         string            `json:"team_name"`
+	Name         string            `json:"name"`
+	Status       string            `json:"status"`
+	Job          string            `json:"job_name"`
+	APIURL       string            `json:"api_url"`
+	Pipeline     string            `json:"pipeline_name"`
+	InstanceVars map[string]string `json:"pipeline_instance_vars,omitempty"`
+	StartTime    int               `json:"start_time"`
+	EndTime      int               `json:"end_time"`
 }
 
 // BuildMetadata is the current build's metadata exposed via the environment.
