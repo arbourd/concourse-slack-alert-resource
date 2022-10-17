@@ -226,14 +226,15 @@ func (c *Client) loginLegacy(url, username, password string) error {
 
 // JobBuild finds and returns a Build from the Concourse API by its
 // pipeline name, job name and build name.
-func (c *Client) JobBuild(pipeline, job, name string) (*Build, error) {
+func (c *Client) JobBuild(pipeline, job, name, instanceVars string) (*Build, error) {
 	u := fmt.Sprintf(
-		"%s/api/v1/teams/%s/pipelines/%s/jobs/%s/builds/%s",
+		"%s/api/v1/teams/%s/pipelines/%s/jobs/%s/builds/%s%s",
 		c.atcurl,
 		c.team,
 		pipeline,
 		job,
 		name,
+		instanceVars,
 	)
 
 	r, err := c.conn.Get(u)

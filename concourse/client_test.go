@@ -2,6 +2,7 @@ package concourse
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
@@ -147,7 +148,7 @@ func TestJobBuild(t *testing.T) {
 		build *Build
 		err   bool
 	}{
-		"ok": {build: &Build{
+		"okWithoutInstanceVars": {build: &Build{
 			ID:       1,
 			Team:     "main",
 			Name:     "1",
@@ -155,6 +156,19 @@ func TestJobBuild(t *testing.T) {
 			Job:      "test",
 			APIURL:   "/api/v1/builds/1",
 			Pipeline: "demo",
+		}},
+		"okWithInstanceVars": {build: &Build{
+			ID:       1,
+			Team:     "main",
+			Name:     "1",
+			Status:   "succeeded",
+			Job:      "test",
+			APIURL:   "/api/v1/builds/1",
+			Pipeline: "demo",
+			InstanceVars: map[string]string{
+				"image_name": "my-image",
+				"pr_number":  "1234",
+			},
 		}},
 		"unauthorized": {
 			build: &Build{},
@@ -174,7 +188,17 @@ func TestJobBuild(t *testing.T) {
 
 		t.Run(name, func(t *testing.T) {
 			client := &Client{atcurl: u, team: c.build.Team, conn: &http.Client{}}
-			build, err := client.JobBuild(c.build.Pipeline, c.build.Job, c.build.Name)
+			instanceVars := ""
+			if c.build.InstanceVars != nil {
+				query := &url.Values{}
+				for key, value := range c.build.InstanceVars {
+					key = fmt.Sprintf("vars.%s", key)
+					value = fmt.Sprintf(`"%s"`, value)
+					query.Set(key, value)
+				}
+				instanceVars = fmt.Sprintf("?%s", query.Encode())
+			}
+			build, err := client.JobBuild(c.build.Pipeline, c.build.Job, c.build.Name, instanceVars)
 
 			if err != nil && !c.err {
 				t.Fatalf("unexpected error from JobBuild:\n\t(ERR): %s", err)

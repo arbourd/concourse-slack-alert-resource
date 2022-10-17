@@ -96,7 +96,13 @@ func previousBuildStatus(input *concourse.OutRequest, m concourse.BuildMetadata)
 		return "", fmt.Errorf("error parsing build name: %s", err)
 	}
 
-	previous, err := c.JobBuild(m.PipelineName, m.JobName, p)
+	instanceVars := ""
+	instanceVarsIndex := strings.Index(m.URL, "?")
+	if instanceVarsIndex > -1 {
+		instanceVars = m.URL[instanceVarsIndex:]
+	}
+
+	previous, err := c.JobBuild(m.PipelineName, m.JobName, p, instanceVars)
 	if err != nil {
 		return "", fmt.Errorf("error requesting Concourse build status: %s", err)
 	}
