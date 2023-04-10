@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"reflect"
 	"strings"
 )
 
@@ -17,7 +18,7 @@ type Build struct {
 	Job          string            `json:"job_name"`
 	APIURL       string            `json:"api_url"`
 	Pipeline     string            `json:"pipeline_name"`
-	InstanceVars map[string]string `json:"pipeline_instance_vars,omitempty"`
+	InstanceVars map[string]interface{} `json:"pipeline_instance_vars,omitempty"`
 	StartTime    int               `json:"start_time"`
 	EndTime      int               `json:"end_time"`
 }
@@ -54,7 +55,7 @@ func NewBuildMetadata(atcurl string) BuildMetadata {
 
 	instanceVars := ""
 	if metadata.InstanceVars != "" {
-		jsonMap := make(map[string]string)
+		jsonMap := make(map[string]interface{})
 		err := json.Unmarshal([]byte(metadata.InstanceVars), &jsonMap)
 		if err != nil {
 			panic(fmt.Sprintf("could not unmarshall $BUILD_PIPELINE_INSTANCE_VARS: %s", metadata.InstanceVars))
@@ -63,8 +64,17 @@ func NewBuildMetadata(atcurl string) BuildMetadata {
 		query := &url.Values{}
 		for key, value := range jsonMap {
 			key = fmt.Sprintf("vars.%s", key)
-			value = fmt.Sprintf(`"%s"`, value)
-			query.Set(key, value)
+
+			switch val := value.(type) {
+			case int:
+				query.Set(key, fmt.Sprintf(`%v`, val))
+			case float64:
+				query.Set(key, fmt.Sprintf(`%v`, val))
+			case string:
+				query.Set(key, fmt.Sprintf(`"%v"`, val))
+			default:
+				panic(fmt.Sprintf("unexpected type for instance var %v: %v", key, reflect.TypeOf(val)))
+			}
 		}
 		instanceVars = fmt.Sprintf("?%s", query.Encode())
 	}
