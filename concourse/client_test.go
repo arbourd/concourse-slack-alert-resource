@@ -165,7 +165,7 @@ func TestJobBuild(t *testing.T) {
 			Job:      "test",
 			APIURL:   "/api/v1/builds/1",
 			Pipeline: "demo",
-			InstanceVars: map[string]string{
+			InstanceVars: map[string]interface{}{
 				"image_name": "my-image",
 				"pr_number":  "1234",
 			},
@@ -193,8 +193,17 @@ func TestJobBuild(t *testing.T) {
 				query := &url.Values{}
 				for key, value := range c.build.InstanceVars {
 					key = fmt.Sprintf("vars.%s", key)
-					value = fmt.Sprintf(`"%s"`, value)
-					query.Set(key, value)
+
+					switch val := value.(type) {
+					case int:
+						query.Set(key, fmt.Sprintf(`%v`, val))
+					case float64:
+						query.Set(key, fmt.Sprintf(`%v`, val))
+					case string:
+						query.Set(key, fmt.Sprintf(`"%v"`, val))
+					default:
+						panic(fmt.Sprintf("unexpected type for instance var %v: %v", key, reflect.TypeOf(val)))
+					}
 				}
 				instanceVars = fmt.Sprintf("?%s", query.Encode())
 			}
