@@ -44,15 +44,15 @@ func TestNewBuildMetadata(t *testing.T) {
 			},
 		},
 		"url with instance vars": {
-			instanceVars: `{"image_name":"my-image","pr_number":"1234"}`,
+			instanceVars: `{"image_name":"my-image","pr_number":1234}`,
 			want: BuildMetadata{
 				Host:         "https://ci.example.com",
 				TeamName:     "main",
 				PipelineName: "demo",
-				InstanceVars: `{"image_name":"my-image","pr_number":"1234"}`,
+				InstanceVars: `{"image_name":"my-image","pr_number":1234}`,
 				JobName:      "my test",
 				BuildName:    "1",
-				URL:          `https://ci.example.com/teams/main/pipelines/demo/jobs/my%20test/builds/1?vars.image_name=%22my-image%22&vars.pr_number=%221234%22`,
+				URL:          `https://ci.example.com/teams/main/pipelines/demo/jobs/my%20test/builds/1?vars.image_name=%22my-image%22&vars.pr_number=1234`,
 			},
 		},
 	}
