@@ -6,11 +6,11 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
-	"reflect"
 	"testing"
 
 	"github.com/arbourd/concourse-slack-alert-resource/concourse"
 	"github.com/arbourd/concourse-slack-alert-resource/slack"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestOut(t *testing.T) {
@@ -209,8 +209,8 @@ func TestOut(t *testing.T) {
 				t.Fatalf("unexpected error from out:\n\t(ERR): %s", err)
 			} else if err == nil && c.err {
 				t.Fatalf("expected an error from out:\n\t(GOT): nil")
-			} else if !reflect.DeepEqual(got, c.want) {
-				t.Fatalf("unexpected concourse.OutResponse value from out:\n\t(GOT): %#v\n\t(WNT): %#v", got, c.want)
+			} else if !cmp.Equal(got, c.want) {
+				t.Fatalf("unexpected concourse.OutResponse value from out:\n\t(GOT): %#v\n\t(WNT): %#v\n\t(DIFF): %v", got, c.want, cmp.Diff(got, c.want))
 			}
 		})
 	}
@@ -367,8 +367,8 @@ func TestBuildMessage(t *testing.T) {
 			}
 
 			got := buildMessage(c.alert, metadata, path)
-			if !reflect.DeepEqual(got, c.want) {
-				t.Fatalf("unexpected slack.Message value from buildSlackMessage:\n\t(GOT): %#v\n\t(WNT): %#v", got, c.want)
+			if !cmp.Equal(got, c.want) {
+				t.Fatalf("unexpected slack.Message value from buildSlackMessage:\n\t(GOT): %#v\n\t(WNT): %#v\n\t(DIFF): %v", got, c.want, cmp.Diff(got, c.want))
 			}
 		})
 	}
