@@ -20,48 +20,60 @@ jobs:
       - run: go mod download
       - run: go test -cpu=1,2 -v ./...
 
-  docker-test:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v3
-      - run: docker build -t concourse-slack-alert-resource:$GITHUB_RUN_ID-$GITHUB_RUN_NUMBER .
-      - run: >
-          echo "{\"source\":{\"url\":\"$(echo -n 'aHR0cHM6Ly9ob29rcy5zbGFjay5jb20vc2VydmljZXMvVDBWRzdBTVNNL0JBV1FWUEhESy9HSmthRzdiaWNiWk1aMlZBUnYwUHBaUVg=' | base64 -d)\"}}" | docker run -i
-          -e "BUILD_TEAM_NAME=main"
-          -e "BUILD_PIPELINE_NAME=github-actions"
-          -e "BUILD_JOB_NAME=test"
-          -e "BUILD_NAME=$GITHUB_RUN_ID-$GITHUB_RUN_NUMBER"
-          concourse-slack-alert-resource:$GITHUB_RUN_ID-$GITHUB_RUN_NUMBER
-          /opt/resource/out $PWD
-
-  publish:
-    needs: [test, docker-test]
-    if: github.event_name != 'pull_request'
+  image:
     runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
       - uses: docker/setup-qemu-action@v2
-      - uses: docker/login-action@v2
+
+      - uses: docker/metadata-action@v4
+        id: docker_meta
+        with:
+          images: docker.io/arbourd/concourse-slack-alert-resource,ghcr.io/arbourd/concourse-slack-alert-resource
+          tags: |
+            type=edge
+            type=semver,pattern={{raw}}
+          flavor: |
+            latest=auto
+
+      - name: Build test image
+        uses: docker/build-push-action@v4
+        with:
+          cache-from: type=gha
+          load: true
+          push: false
+          tags: concourse-slack-alert-resource:dev
+      - run: >
+          echo "{\"source\":{\"url\":\"${{ secrets.SLACK_WEBHOOK }}\"}}" | docker run -i
+          -e "BUILD_TEAM_NAME=main"
+          -e "BUILD_PIPELINE_NAME=github-actions"
+          -e "BUILD_JOB_NAME=test"
+          -e "BUILD_NAME=$GITHUB_RUN_ID-$GITHUB_RUN_NUMBER"
+          -e "BUILD_PIPELINE_INSTANCE_VARS={\"ref\":\"$GITHUB_REF_NAME\"}"
+          concourse-slack-alert-resource:dev
+          /opt/resource/out $PWD
+
+      - if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/login-action@v2
         with:
           registry: docker.io
           username: arbourd
           password: ${{ secrets.DOCKER_TOKEN }}
-
-      - uses: crazy-max/ghaction-docker-meta@v4
-        id: docker_meta
+      - if: startsWith(github.ref, 'refs/tags/v')
+        uses: docker/login-action@v2
         with:
-          images: docker.io/arbourd/concourse-slack-alert-resource
-          tags: |
-            type=ref,event=branch
-            type=ref,event=tag
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: build and publish image
+      - name: Build and publish image
+        if: startsWith(github.ref, 'refs/tags/v')
         uses: docker/build-push-action@v4
         with:
-          cache-from: type=registry,ref=docker.io/arbourd/concourse-slack-alert-resource:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.docker_meta.outputs.tags }}

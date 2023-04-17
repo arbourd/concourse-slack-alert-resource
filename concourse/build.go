@@ -46,9 +46,9 @@ func NewBuildMetadata(atcurl string) BuildMetadata {
 		ID:           os.Getenv("BUILD_ID"),
 		TeamName:     os.Getenv("BUILD_TEAM_NAME"),
 		PipelineName: os.Getenv("BUILD_PIPELINE_NAME"),
-		InstanceVars: os.Getenv("BUILD_PIPELINE_INSTANCE_VARS"),
 		JobName:      os.Getenv("BUILD_JOB_NAME"),
 		BuildName:    os.Getenv("BUILD_NAME"),
+		InstanceVars: os.Getenv("BUILD_PIPELINE_INSTANCE_VARS"),
 	}
 
 	instanceVarsQuery := ""
@@ -56,7 +56,7 @@ func NewBuildMetadata(atcurl string) BuildMetadata {
 		instanceVarsQuery = fmt.Sprintf("?vars=%s", url.QueryEscape(metadata.InstanceVars))
 	}
 
-	// "$HOST/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME$BUILD_PIPELINE_INSTANCE_VARS"
+	// "$HOST/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME?var=$BUILD_PIPELINE_INSTANCE_VARS"
 	metadata.URL = fmt.Sprintf(
 		"%s/teams/%s/pipelines/%s/jobs/%s/builds/%s%s",
 		metadata.Host,
