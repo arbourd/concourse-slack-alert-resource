@@ -1,10 +1,10 @@
 package main
 
 import (
-	"reflect"
 	"testing"
 
 	"github.com/arbourd/concourse-slack-alert-resource/concourse"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestNewAlert(t *testing.T) {
@@ -65,8 +65,8 @@ func TestNewAlert(t *testing.T) {
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			got := NewAlert(c.input)
-			if !reflect.DeepEqual(got, c.want) {
-				t.Fatalf("unexpected Alert from NewAlert:\n\t(GOT): %#v\n\t(WNT): %#v", got, c.want)
+			if !cmp.Equal(got, c.want) {
+				t.Fatalf("unexpected Alert from NewAlert:\n\t(GOT): %#v\n\t(WNT): %#v\n\t(DIFF): %v", got, c.want, cmp.Diff(got, c.want))
 			}
 		})
 	}

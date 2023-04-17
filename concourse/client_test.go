@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"reflect"
 	"strings"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 const tokenType = "Bearer"
@@ -148,7 +149,7 @@ func TestJobBuild(t *testing.T) {
 		build *Build
 		err   bool
 	}{
-		"okWithoutInstanceVars": {build: &Build{
+		"basic": {build: &Build{
 			ID:       1,
 			Team:     "main",
 			Name:     "1",
@@ -157,7 +158,7 @@ func TestJobBuild(t *testing.T) {
 			APIURL:   "/api/v1/builds/1",
 			Pipeline: "demo",
 		}},
-		"okWithInstanceVars": {build: &Build{
+		"instance vars": {build: &Build{
 			ID:       1,
 			Team:     "main",
 			Name:     "1",
@@ -165,9 +166,11 @@ func TestJobBuild(t *testing.T) {
 			Job:      "test",
 			APIURL:   "/api/v1/builds/1",
 			Pipeline: "demo",
-			InstanceVars: map[string]interface{}{
+			InstanceVars: map[string]any{
 				"image_name": "my-image",
-				"pr_number":  "1234",
+				// Go parses numbers as float64 by default
+				"pr_number": float64(1234),
+				"args":      []any{"start"},
 			},
 		}},
 		"unauthorized": {
@@ -188,33 +191,21 @@ func TestJobBuild(t *testing.T) {
 
 		t.Run(name, func(t *testing.T) {
 			client := &Client{atcurl: u, team: c.build.Team, conn: &http.Client{}}
-			instanceVars := ""
-			if c.build.InstanceVars != nil {
-				query := &url.Values{}
-				for key, value := range c.build.InstanceVars {
-					key = fmt.Sprintf("vars.%s", key)
+			instanceVarsQuery := ""
 
-					switch val := value.(type) {
-					case int:
-						query.Set(key, fmt.Sprintf(`%v`, val))
-					case float64:
-						query.Set(key, fmt.Sprintf(`%v`, val))
-					case string:
-						query.Set(key, fmt.Sprintf(`"%v"`, val))
-					default:
-						panic(fmt.Sprintf("unexpected type for instance var %v: %v", key, reflect.TypeOf(val)))
-					}
-				}
-				instanceVars = fmt.Sprintf("?%s", query.Encode())
+			if c.build.InstanceVars != nil {
+				varsBytes, _ := json.Marshal(c.build.InstanceVars)
+				instanceVarsQuery = fmt.Sprintf("?vars=%s", url.QueryEscape(string(varsBytes)))
 			}
-			build, err := client.JobBuild(c.build.Pipeline, c.build.Job, c.build.Name, instanceVars)
+
+			build, err := client.JobBuild(c.build.Pipeline, c.build.Job, c.build.Name, instanceVarsQuery)
 
 			if err != nil && !c.err {
 				t.Fatalf("unexpected error from JobBuild:\n\t(ERR): %s", err)
 			} else if err == nil && c.err {
 				t.Fatalf("expected an error from JobBuild:\n\t(GOT): nil")
-			} else if !c.err && !reflect.DeepEqual(build, c.build) {
-				t.Fatalf("unexpected Build from JobBuild:\n\t(GOT): %#v\n\t(WNT): %#v", build, c.build)
+			} else if !c.err && !cmp.Equal(build, c.build) {
+				t.Fatalf("unexpected Build from JobBuild:\n\t(GOT): %#v\n\t(WNT): %#v\n\t(DIFF): %v", build, c.build, cmp.Diff(build, c.build))
 			}
 		})
 		s.Close()

@@ -2,8 +2,9 @@ package concourse
 
 import (
 	"os"
-	"reflect"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestNewBuildMetadata(t *testing.T) {
@@ -44,15 +45,15 @@ func TestNewBuildMetadata(t *testing.T) {
 			},
 		},
 		"url with instance vars": {
-			instanceVars: `{"image_name":"my-image","pr_number":1234}`,
+			instanceVars: `{"image_name":"my-image","pr_number":1234,"args":["start"]}`,
 			want: BuildMetadata{
 				Host:         "https://ci.example.com",
 				TeamName:     "main",
 				PipelineName: "demo",
-				InstanceVars: `{"image_name":"my-image","pr_number":1234}`,
+				InstanceVars: `{"image_name":"my-image","pr_number":1234,"args":["start"]}`,
 				JobName:      "my test",
 				BuildName:    "1",
-				URL:          `https://ci.example.com/teams/main/pipelines/demo/jobs/my%20test/builds/1?vars.image_name=%22my-image%22&vars.pr_number=1234`,
+				URL:          `https://ci.example.com/teams/main/pipelines/demo/jobs/my%20test/builds/1?vars=%7B%22image_name%22%3A%22my-image%22%2C%22pr_number%22%3A1234%2C%22args%22%3A%5B%22start%22%5D%7D`,
 			},
 		},
 	}
@@ -69,8 +70,8 @@ func TestNewBuildMetadata(t *testing.T) {
 			}
 
 			metadata := NewBuildMetadata(c.host)
-			if !reflect.DeepEqual(metadata, c.want) {
-				t.Fatalf("unexpected BuildMetadata value from GetBuildMetadata:\n\t(GOT): %#v\n\t(WNT): %#v", metadata, c.want)
+			if !cmp.Equal(metadata, c.want) {
+				t.Fatalf("unexpected BuildMetadata value from GetBuildMetadata:\n\t(GOT): %#v\n\t(WNT): %#v\n\t(DIFF): %v", metadata, c.want, cmp.Diff(metadata, c.want))
 			}
 		})
 	}

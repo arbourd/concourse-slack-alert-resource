@@ -1,26 +1,24 @@
 package concourse
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
-	"reflect"
 	"strings"
 )
 
 // A Build is a build's data from the undocumented Concourse API.
 type Build struct {
-	ID           int               `json:"id"`
-	Team         string            `json:"team_name"`
-	Name         string            `json:"name"`
-	Status       string            `json:"status"`
-	Job          string            `json:"job_name"`
-	APIURL       string            `json:"api_url"`
-	Pipeline     string            `json:"pipeline_name"`
-	InstanceVars map[string]interface{} `json:"pipeline_instance_vars,omitempty"`
-	StartTime    int               `json:"start_time"`
-	EndTime      int               `json:"end_time"`
+	ID           int            `json:"id"`
+	Team         string         `json:"team_name"`
+	Name         string         `json:"name"`
+	Status       string         `json:"status"`
+	Job          string         `json:"job_name"`
+	APIURL       string         `json:"api_url"`
+	Pipeline     string         `json:"pipeline_name"`
+	InstanceVars map[string]any `json:"pipeline_instance_vars,omitempty"`
+	StartTime    int            `json:"start_time"`
+	EndTime      int            `json:"end_time"`
 }
 
 // BuildMetadata is the current build's metadata exposed via the environment.
@@ -53,30 +51,9 @@ func NewBuildMetadata(atcurl string) BuildMetadata {
 		BuildName:    os.Getenv("BUILD_NAME"),
 	}
 
-	instanceVars := ""
+	instanceVarsQuery := ""
 	if metadata.InstanceVars != "" {
-		jsonMap := make(map[string]interface{})
-		err := json.Unmarshal([]byte(metadata.InstanceVars), &jsonMap)
-		if err != nil {
-			panic(fmt.Sprintf("could not unmarshall $BUILD_PIPELINE_INSTANCE_VARS: %s", metadata.InstanceVars))
-		}
-
-		query := &url.Values{}
-		for key, value := range jsonMap {
-			key = fmt.Sprintf("vars.%s", key)
-
-			switch val := value.(type) {
-			case int:
-				query.Set(key, fmt.Sprintf(`%v`, val))
-			case float64:
-				query.Set(key, fmt.Sprintf(`%v`, val))
-			case string:
-				query.Set(key, fmt.Sprintf(`"%v"`, val))
-			default:
-				panic(fmt.Sprintf("unexpected type for instance var %v: %v", key, reflect.TypeOf(val)))
-			}
-		}
-		instanceVars = fmt.Sprintf("?%s", query.Encode())
+		instanceVarsQuery = fmt.Sprintf("?vars=%s", url.QueryEscape(metadata.InstanceVars))
 	}
 
 	// "$HOST/teams/$BUILD_TEAM_NAME/pipelines/$BUILD_PIPELINE_NAME/jobs/$BUILD_JOB_NAME/builds/$BUILD_NAME$BUILD_PIPELINE_INSTANCE_VARS"
@@ -87,7 +64,7 @@ func NewBuildMetadata(atcurl string) BuildMetadata {
 		url.PathEscape(metadata.PipelineName),
 		url.PathEscape(metadata.JobName),
 		url.PathEscape(metadata.BuildName),
-		instanceVars,
+		instanceVarsQuery,
 	)
 
 	return metadata
