@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/arbourd/concourse-slack-alert-resource.svg?branch=main)](https://travis-ci.com/arbourd/concourse-slack-alert-resource) [![Go Report Card](https://goreportcard.com/badge/github.com/arbourd/concourse-slack-alert-resource)](https://goreportcard.com/report/github.com/arbourd/concourse-slack-alert-resource)
+[![Go Report Card](https://goreportcard.com/badge/github.com/arbourd/concourse-slack-alert-resource)](https://goreportcard.com/report/github.com/arbourd/concourse-slack-alert-resource)
 
 # concourse-slack-alert-resource
 
