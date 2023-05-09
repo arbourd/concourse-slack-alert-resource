@@ -47,7 +47,7 @@ jobs:
           push: false
           tags: concourse-slack-alert-resource:dev
       - run: >
-          echo "{\"source\":{\"url\":\"${{ secrets.SLACK_WEBHOOK }}\"}}" | docker run -i
+          echo "{\"source\":{\"url\":\"${{ vars.SLACK_WEBHOOK }}\"}}" | docker run -i
           -e "BUILD_TEAM_NAME=main"
           -e "BUILD_PIPELINE_NAME=github-actions"
           -e "BUILD_JOB_NAME=test"
