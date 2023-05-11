@@ -16,7 +16,7 @@ Use this resource by adding the following to the resource_types section of a pip
 resource_types:
 
 - name: slack-alert
-  type: docker-image
+  type: registry-image
   source:
     repository: arbourd/concourse-slack-alert-resource
 ```
