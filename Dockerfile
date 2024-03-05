@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine AS build
+FROM golang:1.22-alpine AS build
 WORKDIR /go/src/github.com/arbourd/concourse-slack-alert-resource
 RUN apk --no-cache add --update git
 
@@ -10,7 +10,7 @@ RUN go build -o /check github.com/arbourd/concourse-slack-alert-resource/check
 RUN go build -o /in github.com/arbourd/concourse-slack-alert-resource/in
 RUN go build -o /out github.com/arbourd/concourse-slack-alert-resource/out
 
-FROM alpine:3.18
+FROM alpine:3.19
 RUN apk add --no-cache ca-certificates
 
 COPY --from=build /check /opt/resource/check
