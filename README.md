@@ -18,7 +18,7 @@ resource_types:
 - name: slack-alert
   type: registry-image
   source:
-    repository: arbourd/concourse-slack-alert-resource
+    repository: ghcr.io/arbourd/concourse-slack-alert-resource
 ```
 
 See the [Concourse docs](https://concourse-ci.org/resource-types.html) for more details on adding `resource_types` to a pipeline config.
