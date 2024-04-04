@@ -5,6 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
+
+	"github.com/cenkalti/backoff/v4"
 )
 
 // Message represents a Slack API message
@@ -35,20 +38,30 @@ type Field struct {
 }
 
 // Send sends the message to the webhook URL.
-func Send(url string, m *Message) error {
+func Send(url string, m *Message, maxRetryTime time.Duration) error {
 	buf, err := json.Marshal(m)
 	if err != nil {
 		return err
 	}
 
-	res, err := http.Post(url, "application/json", bytes.NewReader(buf))
+	err = backoff.Retry(
+		func() error {
+			r, err := http.Post(url, "application/json", bytes.NewReader(buf))
+			if err != nil {
+				return err
+			}
+			defer r.Body.Close()
+
+			if r.StatusCode > 399 {
+				return fmt.Errorf("unexpected response status code: %d", r.StatusCode)
+			}
+			return nil
+		},
+		backoff.NewExponentialBackOff(backoff.WithMaxElapsedTime(maxRetryTime)),
+	)
+
 	if err != nil {
 		return err
-	}
-	defer res.Body.Close()
-
-	if res.StatusCode != 200 {
-		return fmt.Errorf("unexpected status code: %d", res.StatusCode)
 	}
 	return nil
 }
