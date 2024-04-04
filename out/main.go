@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/arbourd/concourse-slack-alert-resource/concourse"
 	"github.com/arbourd/concourse-slack-alert-resource/slack"
@@ -130,6 +131,8 @@ func previousBuildName(s string) (string, error) {
 	return strings.Trim(s, ".0"), nil
 }
 
+var maxElapsedTime = 30 * time.Second
+
 func out(input *concourse.OutRequest, path string) (*concourse.OutResponse, error) {
 	if input.Source.URL == "" {
 		return nil, errors.New("slack webhook url cannot be blank")
@@ -153,7 +156,7 @@ func out(input *concourse.OutRequest, path string) (*concourse.OutResponse, erro
 	}
 
 	message := buildMessage(alert, metadata, path)
-	err := slack.Send(input.Source.URL, message)
+	err := slack.Send(input.Source.URL, message, maxElapsedTime)
 	if err != nil {
 		return nil, fmt.Errorf("error sending slack message: %w", err)
 	}

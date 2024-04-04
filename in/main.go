@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"os"
 
@@ -11,6 +12,6 @@ import (
 func main() {
 	err := json.NewEncoder(os.Stdout).Encode(concourse.InResponse{Version: concourse.Version{"ver": "static"}})
 	if err != nil {
-		log.Fatalln(err)
+		log.Fatalln(fmt.Errorf("error: %s", err))
 	}
 }
