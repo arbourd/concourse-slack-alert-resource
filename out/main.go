@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
@@ -23,7 +22,7 @@ func buildMessage(alert Alert, m concourse.BuildMetadata, path string) *slack.Me
 	// Open and read message file if set
 	if alert.MessageFile != "" {
 		file := filepath.Join(path, alert.MessageFile)
-		f, err := ioutil.ReadFile(file)
+		f, err := os.ReadFile(file)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error reading message_file: %v\nwill default to message instead\n", err)
@@ -35,7 +34,7 @@ func buildMessage(alert Alert, m concourse.BuildMetadata, path string) *slack.Me
 	// Open and read channel file if set
 	if alert.ChannelFile != "" {
 		file := filepath.Join(path, alert.ChannelFile)
-		f, err := ioutil.ReadFile(file)
+		f, err := os.ReadFile(file)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error reading channel_file: %v\nwill default to channel instead\n", err)
@@ -47,7 +46,7 @@ func buildMessage(alert Alert, m concourse.BuildMetadata, path string) *slack.Me
 	// Open and read text file if set
 	if alert.TextFile != "" {
 		file := filepath.Join(path, alert.TextFile)
-		f, err := ioutil.ReadFile(file)
+		f, err := os.ReadFile(file)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error reading text_file: %v\nwill default to text instead\n", err)

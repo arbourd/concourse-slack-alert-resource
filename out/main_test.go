@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -354,14 +353,9 @@ func TestBuildMessage(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			path := ""
 			if c.alert.MessageFile != "" || c.alert.ChannelFile != "" {
-				dir, err := ioutil.TempDir("", "example")
-				if err != nil {
-					t.Fatal(err)
-				}
-				path = dir
+				path = t.TempDir()
 
-				defer os.RemoveAll(dir)
-				if err := ioutil.WriteFile(filepath.Join(dir, "test_file"), []byte("filecontents"), 0666); err != nil {
+				if err := os.WriteFile(filepath.Join(path, "test_file"), []byte("filecontents"), 0666); err != nil {
 					t.Fatal(err)
 				}
 			}
