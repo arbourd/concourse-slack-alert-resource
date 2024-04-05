@@ -18,7 +18,7 @@ jobs:
         with:
           go-version-file: go.mod
       - run: go mod download
-      - run: go test -cpu=1,2 -v ./...
+      - run: go test -cpu=1,2 -race ./...
 
   image:
     needs: [test]
