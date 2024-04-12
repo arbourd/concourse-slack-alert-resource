@@ -30,7 +30,7 @@ func TestSend(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			err := Send(s.URL, c.message)
 			if err != nil && !c.err {
-				t.Fatalf("unexpected error from Send:\n\t(ERR): %s", err)
+				t.Fatalf("unexpected error from Send:\n\t(ERR): %w", err)
 			} else if err == nil && c.err {
 				t.Fatalf("expected an error from Send:\n\t(GOT): nil")
 			}

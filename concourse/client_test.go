@@ -114,7 +114,7 @@ func TestNewClient(t *testing.T) {
 			client, err := NewClient(s.URL, "main", c.username, c.password)
 			// Test err conditions.
 			if err != nil && !c.err {
-				t.Fatalf("unexpected error from NewClient:\n\t(ERR): %s", err)
+				t.Fatalf("unexpected error from NewClient:\n\t(ERR): %w", err)
 			} else if err == nil && c.err {
 				t.Fatalf("expected an error from NewClient:\n\t(GOT): nil")
 			} else if err != nil && c.err {
@@ -201,7 +201,7 @@ func TestJobBuild(t *testing.T) {
 			build, err := client.JobBuild(c.build.Pipeline, c.build.Job, c.build.Name, instanceVarsQuery)
 
 			if err != nil && !c.err {
-				t.Fatalf("unexpected error from JobBuild:\n\t(ERR): %s", err)
+				t.Fatalf("unexpected error from JobBuild:\n\t(ERR): %w", err)
 			} else if err == nil && c.err {
 				t.Fatalf("expected an error from JobBuild:\n\t(GOT): nil")
 			} else if !c.err && !cmp.Equal(build, c.build) {

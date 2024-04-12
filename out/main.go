@@ -87,12 +87,12 @@ func previousBuildStatus(input *concourse.OutRequest, m concourse.BuildMetadata)
 
 	c, err := concourse.NewClient(m.Host, m.TeamName, input.Source.Username, input.Source.Password)
 	if err != nil {
-		return "", fmt.Errorf("error connecting to Concourse: %s", err)
+		return "", fmt.Errorf("error connecting to Concourse: %w", err)
 	}
 
 	p, err := previousBuildName(m.BuildName)
 	if err != nil {
-		return "", fmt.Errorf("error parsing build name: %s", err)
+		return "", fmt.Errorf("error parsing build name: %w", err)
 	}
 
 	instanceVars := ""
@@ -103,7 +103,7 @@ func previousBuildStatus(input *concourse.OutRequest, m concourse.BuildMetadata)
 
 	previous, err := c.JobBuild(m.PipelineName, m.JobName, p, instanceVars)
 	if err != nil {
-		return "", fmt.Errorf("error requesting Concourse build status: %s", err)
+		return "", fmt.Errorf("error requesting Concourse build status: %w", err)
 	}
 
 	return previous.Status, nil
@@ -144,7 +144,7 @@ func out(input *concourse.OutRequest, path string) (*concourse.OutResponse, erro
 	if alert.Type == "fixed" || alert.Type == "broke" {
 		pstatus, err := previousBuildStatus(input, metadata)
 		if err != nil {
-			return nil, fmt.Errorf("error getting last build status: %v", err)
+			return nil, fmt.Errorf("error getting last build status: %w", err)
 		}
 
 		if (alert.Type == "fixed" && pstatus == "succeeded") || (alert.Type == "broke" && pstatus != "succeeded") {
@@ -155,7 +155,7 @@ func out(input *concourse.OutRequest, path string) (*concourse.OutResponse, erro
 	message := buildMessage(alert, metadata, path)
 	err := slack.Send(input.Source.URL, message)
 	if err != nil {
-		return nil, fmt.Errorf("error sending slack message: %v", err)
+		return nil, fmt.Errorf("error sending slack message: %w", err)
 	}
 	return buildOut(alert.Type, message.Channel, true), nil
 }
@@ -178,7 +178,7 @@ func main() {
 	var input *concourse.OutRequest
 	err := json.NewDecoder(os.Stdin).Decode(&input)
 	if err != nil {
-		log.Fatalln(fmt.Errorf("error reading stdin: %v", err))
+		log.Fatalln(fmt.Errorf("error reading stdin: %w", err))
 	}
 
 	o, err := out(input, path)
@@ -188,6 +188,6 @@ func main() {
 
 	err = json.NewEncoder(os.Stdout).Encode(o)
 	if err != nil {
-		log.Fatalln(fmt.Errorf("error writing stdout: %v", err))
+		log.Fatalln(fmt.Errorf("error writing stdout: %w", err))
 	}
 }

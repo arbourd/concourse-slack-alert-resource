@@ -205,7 +205,7 @@ func TestOut(t *testing.T) {
 
 			got, err := out(c.outRequest, "")
 			if err != nil && !c.err {
-				t.Fatalf("unexpected error from out:\n\t(ERR): %s", err)
+				t.Fatalf("unexpected error from out:\n\t(ERR): %w", err)
 			} else if err == nil && c.err {
 				t.Fatalf("expected an error from out:\n\t(GOT): nil")
 			} else if !cmp.Equal(got, c.want) {
@@ -401,7 +401,7 @@ func TestPreviousBuildName(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			got, err := previousBuildName(c.build)
 			if err != nil && !c.err {
-				t.Fatalf("unexpected error from previousBuildName:\n\t(ERR): %s", err)
+				t.Fatalf("unexpected error from previousBuildName:\n\t(ERR): %w", err)
 			} else if err == nil && c.err {
 				t.Fatalf("expected an error from previousBuildName:\n\t(GOT): nil")
 			} else if err != nil && c.err {
