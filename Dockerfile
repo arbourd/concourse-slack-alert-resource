@@ -1,4 +1,4 @@
-FROM golang:1.22-alpine AS build
+FROM golang:1.24-alpine AS build
 WORKDIR /go/src/github.com/arbourd/concourse-slack-alert-resource
 RUN apk --no-cache add --update git
 
