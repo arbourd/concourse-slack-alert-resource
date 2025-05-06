@@ -6,5 +6,5 @@ require (
 	github.com/Masterminds/semver/v3 v3.3.1
 	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/google/go-cmp v0.7.0
-	golang.org/x/oauth2 v0.29.0
+	golang.org/x/oauth2 v0.30.0
 )
