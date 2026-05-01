@@ -1,6 +1,6 @@
 module github.com/arbourd/concourse-slack-alert-resource
 
-go 1.24.0
+go 1.26.2
 
 require (
 	github.com/Masterminds/semver/v3 v3.5.0
