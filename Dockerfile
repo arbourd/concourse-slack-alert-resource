@@ -10,7 +10,7 @@ RUN go build -o /check github.com/arbourd/concourse-slack-alert-resource/check
 RUN go build -o /in github.com/arbourd/concourse-slack-alert-resource/in
 RUN go build -o /out github.com/arbourd/concourse-slack-alert-resource/out
 
-FROM alpine:3.23
+FROM alpine:3.24
 RUN apk add --no-cache ca-certificates
 
 COPY --from=build /check /opt/resource/check
