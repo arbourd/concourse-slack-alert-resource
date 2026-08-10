@@ -150,6 +150,10 @@ func out(input *concourse.OutRequest, path string) (*concourse.OutResponse, erro
 			return nil, fmt.Errorf("error getting last build status: %w", err)
 		}
 
+		if pstatus == "" {
+			return buildOut(alert.Type, alert.Channel, false), nil
+		}
+
 		if (alert.Type == "fixed" && pstatus == "succeeded") || (alert.Type == "broke" && pstatus != "succeeded") {
 			return buildOut(alert.Type, alert.Channel, false), nil
 		}
