@@ -2,12 +2,15 @@ package slack
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
+	"strconv"
 	"time"
 
-	"github.com/cenkalti/backoff/v4"
+	"github.com/cenkalti/backoff/v7"
 )
 
 // Message represents a Slack API message
@@ -44,24 +47,46 @@ func Send(url string, m *Message, maxRetryTime time.Duration) error {
 		return err
 	}
 
-	err = backoff.Retry(
-		func() error {
-			r, err := http.Post(url, "application/json", bytes.NewReader(buf))
+	// The context bounds in-flight requests, which WithMaxElapsedTime alone does not.
+	ctx, cancel := context.WithTimeout(context.Background(), maxRetryTime)
+	defer cancel()
+
+	_, err = backoff.Retry(ctx,
+		func() (struct{}, error) {
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(buf))
 			if err != nil {
-				return err
+				return struct{}{}, backoff.Permanent(err)
+			}
+			req.Header.Set("Content-Type", "application/json")
+
+			r, err := http.DefaultClient.Do(req)
+			if err != nil {
+				return struct{}{}, err
 			}
 			defer r.Body.Close()
+			// Drain so the connection can be reused by the next attempt.
+			io.Copy(io.Discard, r.Body)
 
-			if r.StatusCode > 399 {
-				return fmt.Errorf("unexpected response status code: %d", r.StatusCode)
+			if r.StatusCode <= 399 {
+				return struct{}{}, nil
 			}
-			return nil
+			err = fmt.Errorf("unexpected response status code: %d", r.StatusCode)
+
+			if r.StatusCode == http.StatusTooManyRequests {
+				if secs, perr := strconv.Atoi(r.Header.Get("Retry-After")); perr == nil && secs > 0 {
+					return struct{}{}, backoff.RetryAfter(time.Duration(secs)*time.Second, err)
+				}
+			} else if r.StatusCode < 500 {
+				return struct{}{}, backoff.Permanent(err)
+			}
+			return struct{}{}, err
 		},
-		backoff.NewExponentialBackOff(backoff.WithMaxElapsedTime(maxRetryTime)),
+		backoff.WithMaxElapsedTime(maxRetryTime),
 	)
 
-	if err != nil {
-		return err
+	// Surface the underlying error rather than backoff's wrapper.
+	if re := backoff.AsRetryError(err); re != nil && re.LastErr != nil {
+		return re.LastErr
 	}
-	return nil
+	return err
 }
