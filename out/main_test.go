@@ -1,11 +1,13 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/arbourd/concourse-slack-alert-resource/concourse"
 	"github.com/arbourd/concourse-slack-alert-resource/slack"
@@ -13,6 +15,11 @@ import (
 )
 
 func TestOut(t *testing.T) {
+	// Keep the "bad request" retry loop short.
+	old := maxElapsedTime
+	maxElapsedTime = 500 * time.Millisecond
+	defer func() { maxElapsedTime = old }()
+
 	ok := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
 	}))
@@ -21,6 +28,28 @@ func TestOut(t *testing.T) {
 		w.WriteHeader(http.StatusNotFound)
 	}))
 	defer bad.Close()
+
+	// Fake Concourse API that reports the previous build (build 1) with a fixed status.
+	concourseWith := func(status string) *httptest.Server {
+		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			json.NewEncoder(w).Encode(concourse.Build{Name: "1", Status: status})
+		}))
+	}
+	prevOK := concourseWith("succeeded")
+	defer prevOK.Close()
+	prevFailed := concourseWith("failed")
+	defer prevFailed.Close()
+
+	alerted := func(atype string, alerted string) *concourse.OutResponse {
+		return &concourse.OutResponse{
+			Version: concourse.Version{"ver": "static"},
+			Metadata: []concourse.Metadata{
+				{Name: "type", Value: atype},
+				{Name: "channel", Value: ""},
+				{Name: "alerted", Value: alerted},
+			},
+		}
+	}
 
 	env := map[string]string{
 		"ATC_EXTERNAL_URL":    "https://ci.example.com",
@@ -173,6 +202,38 @@ func TestOut(t *testing.T) {
 			},
 			env: env,
 		},
+		"fixed after failure": {
+			outRequest: &concourse.OutRequest{
+				Source: concourse.Source{URL: ok.URL, ConcourseURL: prevFailed.URL},
+				Params: concourse.OutParams{AlertType: "fixed"},
+			},
+			want: alerted("fixed", "true"),
+			env:  env,
+		},
+		"fixed after success is suppressed": {
+			outRequest: &concourse.OutRequest{
+				Source: concourse.Source{URL: ok.URL, ConcourseURL: prevOK.URL},
+				Params: concourse.OutParams{AlertType: "fixed"},
+			},
+			want: alerted("fixed", "false"),
+			env:  env,
+		},
+		"broke after success": {
+			outRequest: &concourse.OutRequest{
+				Source: concourse.Source{URL: ok.URL, ConcourseURL: prevOK.URL},
+				Params: concourse.OutParams{AlertType: "broke"},
+			},
+			want: alerted("broke", "true"),
+			env:  env,
+		},
+		"broke after failure is suppressed": {
+			outRequest: &concourse.OutRequest{
+				Source: concourse.Source{URL: ok.URL, ConcourseURL: prevFailed.URL},
+				Params: concourse.OutParams{AlertType: "broke"},
+			},
+			want: alerted("broke", "false"),
+			env:  env,
+		},
 		"error without Slack URL": {
 			outRequest: &concourse.OutRequest{
 				Source: concourse.Source{URL: ""},
@@ -200,7 +261,7 @@ func TestOut(t *testing.T) {
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			for k, v := range c.env {
-				os.Setenv(k, v)
+				t.Setenv(k, v)
 			}
 
 			got, err := out(c.outRequest, "")
@@ -338,6 +399,38 @@ func TestBuildMessage(t *testing.T) {
 				Channel: "testchannel",
 			},
 		},
+		"text file success": {
+			alert: Alert{Type: "default", TextFile: "test_file"},
+			want: &slack.Message{
+				Attachments: []slack.Attachment{
+					{
+						Fallback: ": demo/test/1 -- https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1",
+						Fields: []slack.Field{
+							{Title: "Job", Value: "demo/test", Short: true},
+							{Title: "Build", Value: "1", Short: true},
+						},
+						Footer: "https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1",
+						Text:   "filecontents",
+					},
+				},
+			},
+		},
+		"text file failure": {
+			alert: Alert{Type: "default", Text: "fallback text", TextFile: "missing file"},
+			want: &slack.Message{
+				Attachments: []slack.Attachment{
+					{
+						Fallback: ": demo/test/1 -- https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1",
+						Fields: []slack.Field{
+							{Title: "Job", Value: "demo/test", Short: true},
+							{Title: "Build", Value: "1", Short: true},
+						},
+						Footer: "https://ci.example.com/teams/main/pipelines/demo/jobs/test/builds/1",
+						Text:   "fallback text",
+					},
+				},
+			},
+		},
 	}
 
 	metadata := concourse.BuildMetadata{
@@ -352,7 +445,7 @@ func TestBuildMessage(t *testing.T) {
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			path := ""
-			if c.alert.MessageFile != "" || c.alert.ChannelFile != "" {
+			if c.alert.MessageFile != "" || c.alert.ChannelFile != "" || c.alert.TextFile != "" {
 				path = t.TempDir()
 
 				if err := os.WriteFile(filepath.Join(path, "test_file"), []byte("filecontents"), 0666); err != nil {
@@ -377,7 +470,11 @@ func TestPreviousBuildName(t *testing.T) {
 	}{
 		"standard": {
 			build: "6",
-			want:  "6",
+			want:  "5",
+		},
+		"two digit rerun 1": {
+			build: "10.1",
+			want:  "10",
 		},
 		"rerun 1": {
 			build: "6.1",
@@ -404,12 +501,51 @@ func TestPreviousBuildName(t *testing.T) {
 				t.Fatalf("unexpected error from previousBuildName:\n\t(ERR): %s", err)
 			} else if err == nil && c.err {
 				t.Fatalf("expected an error from previousBuildName:\n\t(GOT): nil")
-			} else if err != nil && c.err {
+			} else if err != nil {
 				return
 			}
 
-			if err != nil {
+			if got != c.want {
 				t.Fatalf("unexpected value from previousBuildName:\n\t(GOT): %#v\n\t(WNT): %#v", got, c.want)
+			}
+		})
+	}
+}
+
+func TestPreviousBuildStatus(t *testing.T) {
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/api/v1/teams/main/pipelines/demo/jobs/test/builds/1":
+			json.NewEncoder(w).Encode(concourse.Build{Name: "1", Status: "failed"})
+		default:
+			http.NotFound(w, r)
+		}
+	}))
+	defer s.Close()
+
+	cases := map[string]struct {
+		build string
+		host  string
+		want  string
+		err   bool
+	}{
+		"first build":      {build: "1", host: s.URL},
+		"previous build":   {build: "2", host: s.URL, want: "failed"},
+		"unknown previous": {build: "5", host: s.URL, err: true},
+		"bad build name":   {build: "X", host: s.URL, err: true},
+		"bad host":         {build: "2", host: "://", err: true},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			m := concourse.BuildMetadata{Host: c.host, TeamName: "main", PipelineName: "demo", JobName: "test", BuildName: c.build}
+			got, err := previousBuildStatus(&concourse.OutRequest{}, m)
+			if err != nil && !c.err {
+				t.Fatalf("unexpected error from previousBuildStatus:\n\t(ERR): %s", err)
+			} else if err == nil && c.err {
+				t.Fatalf("expected an error from previousBuildStatus:\n\t(GOT): nil")
+			} else if got != c.want {
+				t.Fatalf("unexpected status from previousBuildStatus:\n\t(GOT): %#v\n\t(WNT): %#v", got, c.want)
 			}
 		})
 	}
