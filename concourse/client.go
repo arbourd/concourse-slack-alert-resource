@@ -129,12 +129,13 @@ func (c *Client) info() (Info, error) {
 	if err != nil {
 		return info, err
 	}
+	defer r.Body.Close()
 	if r.StatusCode != 200 {
 		return info, fmt.Errorf("could not get info from Concourse: status code %d", r.StatusCode)
 	}
-	json.NewDecoder(r.Body).Decode(&info)
+	err = json.NewDecoder(r.Body).Decode(&info)
 
-	return info, nil
+	return info, err
 }
 
 // singleCookie add the token as a single cookie.
@@ -158,28 +159,24 @@ func (c *Client) splitToken(tokenType, tokenValue string) error {
 	tokenStr := fmt.Sprintf("%s %s", tokenType, tokenValue)
 
 	for i := 0; i < NumCookies; i++ {
-		if len(tokenStr) > maxCookieSize {
-			c.conn.Jar.SetCookies(
-				c.atcurl,
-				[]*http.Cookie{{
-					Name:  authCookieName + strconv.Itoa(i),
-					Value: tokenStr[:maxCookieSize],
-				}},
-			)
-			tokenStr = tokenStr[maxCookieSize:]
-		} else {
+		chunk := tokenStr
+		if len(chunk) > maxCookieSize {
+			chunk = chunk[:maxCookieSize]
 		}
 		c.conn.Jar.SetCookies(
 			c.atcurl,
 			[]*http.Cookie{{
 				Name:  authCookieName + strconv.Itoa(i),
-				Value: tokenStr,
+				Value: chunk,
 			}},
 		)
-		break
+		tokenStr = tokenStr[len(chunk):]
+		if tokenStr == "" {
+			return nil
+		}
 	}
 
-	return nil
+	return errors.New("token too large to split across cookies")
 }
 
 // login gets an access token from Concourse.
@@ -207,12 +204,15 @@ func (c *Client) loginLegacy(url, username, password string) error {
 	if err != nil {
 		return err
 	}
+	defer r.Body.Close()
 	if r.StatusCode != 200 {
 		return fmt.Errorf("could not log into Concourse: status code %d", r.StatusCode)
 	}
 
 	var t Token
-	json.NewDecoder(r.Body).Decode(&t)
+	if err := json.NewDecoder(r.Body).Decode(&t); err != nil {
+		return err
+	}
 
 	c.conn.Jar.SetCookies(
 		c.atcurl,
@@ -241,11 +241,17 @@ func (c *Client) JobBuild(pipeline, job, name, instanceVars string) (*Build, err
 	if err != nil {
 		return nil, err
 	}
+	defer r.Body.Close()
 	if r.StatusCode != 200 {
 		return nil, fmt.Errorf("unexpected status code: %d", r.StatusCode)
 	}
 
 	var build *Build
-	json.NewDecoder(r.Body).Decode(&build)
+	if err := json.NewDecoder(r.Body).Decode(&build); err != nil {
+		return nil, err
+	}
+	if build == nil {
+		return nil, errors.New("empty build response")
+	}
 	return build, nil
 }

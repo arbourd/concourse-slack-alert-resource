@@ -20,8 +20,27 @@ jobs:
       - run: go mod download
       - run: go test -cpu=1,2 -race ./...
 
+  lint:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: go.mod
+      - uses: golangci/golangci-lint-action@v9
+
+  vulncheck:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+      - uses: golang/govulncheck-action@v1
+        with:
+          go-version-file: go.mod
+
   image:
-    needs: [test]
+    needs: [test, lint, vulncheck]
     runs-on: ubuntu-latest
 
     steps:

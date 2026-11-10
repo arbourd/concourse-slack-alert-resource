@@ -65,7 +65,7 @@ func Send(url string, m *Message, maxRetryTime time.Duration) error {
 			}
 			defer r.Body.Close()
 			// Drain so the connection can be reused by the next attempt.
-			io.Copy(io.Discard, r.Body)
+			_, _ = io.Copy(io.Discard, r.Body)
 
 			if r.StatusCode <= 399 {
 				return struct{}{}, nil
