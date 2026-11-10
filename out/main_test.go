@@ -32,7 +32,7 @@ func TestOut(t *testing.T) {
 	// Fake Concourse API that reports the previous build (build 1) with a fixed status.
 	concourseWith := func(status string) *httptest.Server {
 		return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			json.NewEncoder(w).Encode(concourse.Build{Name: "1", Status: status})
+			_ = json.NewEncoder(w).Encode(concourse.Build{Name: "1", Status: status})
 		}))
 	}
 	prevOK := concourseWith("succeeded")
@@ -516,7 +516,7 @@ func TestPreviousBuildStatus(t *testing.T) {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/api/v1/teams/main/pipelines/demo/jobs/test/builds/1":
-			json.NewEncoder(w).Encode(concourse.Build{Name: "1", Status: "failed"})
+			_ = json.NewEncoder(w).Encode(concourse.Build{Name: "1", Status: "failed"})
 		default:
 			http.NotFound(w, r)
 		}

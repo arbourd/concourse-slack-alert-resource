@@ -79,7 +79,7 @@ func NewAlert(input *concourse.OutRequest) Alert {
 	}
 
 	alert.Disabled = input.Params.Disable
-	if alert.Disabled == false {
+	if !alert.Disabled {
 		alert.Disabled = input.Source.Disable
 	}
 

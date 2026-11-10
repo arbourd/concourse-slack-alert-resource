@@ -107,7 +107,7 @@ func TestNewClient(t *testing.T) {
 			}
 
 			w.Header().Set("Content-Type", "application/json")
-			w.Write(resp)
+			_, _ = w.Write(resp)
 		}))
 
 		t.Run(name, func(t *testing.T) {
@@ -185,7 +185,7 @@ func TestJobBuild(t *testing.T) {
 				http.Error(w, "", http.StatusUnauthorized)
 			}
 			resp, _ := json.Marshal(c.build)
-			w.Write(resp)
+			_, _ = w.Write(resp)
 		}))
 		u, _ := url.Parse(s.URL)
 
