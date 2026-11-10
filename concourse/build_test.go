@@ -1,7 +1,6 @@
 package concourse
 
 import (
-	"os"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -61,12 +60,12 @@ func TestNewBuildMetadata(t *testing.T) {
 	for name, c := range cases {
 		t.Run(name, func(t *testing.T) {
 			for k, v := range env {
-				os.Setenv(k, v)
+				t.Setenv(k, v)
 			}
 			if c.instanceVars != "" {
-				os.Setenv("BUILD_PIPELINE_INSTANCE_VARS", c.instanceVars)
+				t.Setenv("BUILD_PIPELINE_INSTANCE_VARS", c.instanceVars)
 			} else {
-				os.Unsetenv("BUILD_PIPELINE_INSTANCE_VARS")
+				t.Setenv("BUILD_PIPELINE_INSTANCE_VARS", "")
 			}
 
 			metadata := NewBuildMetadata(c.host)

@@ -128,7 +128,7 @@ func previousBuildName(s string) (string, error) {
 	}
 
 	s = fmt.Sprintf("%s.%s", strs[0], strconv.Itoa(i-1))
-	return strings.Trim(s, ".0"), nil
+	return strings.TrimSuffix(s, ".0"), nil
 }
 
 var maxElapsedTime = 30 * time.Second
