@@ -8,6 +8,9 @@ on:
     tags:
       - v*
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -23,6 +26,9 @@ jobs:
   image:
     needs: [test]
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
 
     steps:
       - uses: actions/checkout@v7
