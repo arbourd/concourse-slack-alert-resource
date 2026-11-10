@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"strconv"
 	"time"
 
@@ -41,7 +43,7 @@ type Field struct {
 }
 
 // Send sends the message to the webhook URL.
-func Send(url string, m *Message, maxRetryTime time.Duration) error {
+func Send(webhook string, m *Message, maxRetryTime time.Duration) error {
 	buf, err := json.Marshal(m)
 	if err != nil {
 		return err
@@ -53,15 +55,15 @@ func Send(url string, m *Message, maxRetryTime time.Duration) error {
 
 	_, err = backoff.Retry(ctx,
 		func() (struct{}, error) {
-			req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, bytes.NewReader(buf))
+			req, err := http.NewRequestWithContext(ctx, http.MethodPost, webhook, bytes.NewReader(buf))
 			if err != nil {
-				return struct{}{}, backoff.Permanent(err)
+				return struct{}{}, backoff.Permanent(redactURL(err))
 			}
 			req.Header.Set("Content-Type", "application/json")
 
 			r, err := http.DefaultClient.Do(req)
 			if err != nil {
-				return struct{}{}, err
+				return struct{}{}, redactURL(err)
 			}
 			defer r.Body.Close()
 			// Drain so the connection can be reused by the next attempt.
@@ -87,6 +89,15 @@ func Send(url string, m *Message, maxRetryTime time.Duration) error {
 	// Surface the underlying error rather than backoff's wrapper.
 	if re := backoff.AsRetryError(err); re != nil && re.LastErr != nil {
 		return re.LastErr
+	}
+	return err
+}
+
+// redactURL drops the request URL, which is the webhook secret, from transport errors.
+func redactURL(err error) error {
+	var ue *url.Error
+	if errors.As(err, &ue) {
+		return ue.Err
 	}
 	return err
 }

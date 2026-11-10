@@ -15,6 +15,15 @@ import (
 	"github.com/arbourd/concourse-slack-alert-resource/slack"
 )
 
+// readLocalFile reads name relative to root, refusing paths that escape root.
+func readLocalFile(root, name string) ([]byte, error) {
+	file := filepath.Join(root, name)
+	if rel, err := filepath.Rel(root, file); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+		return nil, fmt.Errorf("%q is outside the build directory", name)
+	}
+	return os.ReadFile(file)
+}
+
 func buildMessage(alert Alert, m concourse.BuildMetadata, path string) *slack.Message {
 	message := alert.Message
 	channel := alert.Channel
@@ -22,8 +31,7 @@ func buildMessage(alert Alert, m concourse.BuildMetadata, path string) *slack.Me
 
 	// Open and read message file if set
 	if alert.MessageFile != "" {
-		file := filepath.Join(path, alert.MessageFile)
-		f, err := os.ReadFile(file)
+		f, err := readLocalFile(path, alert.MessageFile)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error reading message_file: %v\nwill default to message instead\n", err)
@@ -34,8 +42,7 @@ func buildMessage(alert Alert, m concourse.BuildMetadata, path string) *slack.Me
 
 	// Open and read channel file if set
 	if alert.ChannelFile != "" {
-		file := filepath.Join(path, alert.ChannelFile)
-		f, err := os.ReadFile(file)
+		f, err := readLocalFile(path, alert.ChannelFile)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error reading channel_file: %v\nwill default to channel instead\n", err)
@@ -46,8 +53,7 @@ func buildMessage(alert Alert, m concourse.BuildMetadata, path string) *slack.Me
 
 	// Open and read text file if set
 	if alert.TextFile != "" {
-		file := filepath.Join(path, alert.TextFile)
-		f, err := os.ReadFile(file)
+		f, err := readLocalFile(path, alert.TextFile)
 
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "error reading text_file: %v\nwill default to text instead\n", err)
