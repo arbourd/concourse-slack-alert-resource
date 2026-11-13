@@ -62,15 +62,11 @@ func TestNewBuildMetadata(t *testing.T) {
 			for k, v := range env {
 				t.Setenv(k, v)
 			}
-			if c.instanceVars != "" {
-				t.Setenv("BUILD_PIPELINE_INSTANCE_VARS", c.instanceVars)
-			} else {
-				t.Setenv("BUILD_PIPELINE_INSTANCE_VARS", "")
-			}
+			t.Setenv("BUILD_PIPELINE_INSTANCE_VARS", c.instanceVars)
 
 			metadata := NewBuildMetadata(c.host)
 			if !cmp.Equal(metadata, c.want) {
-				t.Fatalf("unexpected BuildMetadata value from GetBuildMetadata:\n\t(GOT): %#v\n\t(WNT): %#v\n\t(DIFF): %v", metadata, c.want, cmp.Diff(metadata, c.want))
+				t.Fatalf("unexpected BuildMetadata value from NewBuildMetadata:\n\t(GOT): %#v\n\t(WNT): %#v\n\t(DIFF): %v", metadata, c.want, cmp.Diff(metadata, c.want))
 			}
 		})
 	}

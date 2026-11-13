@@ -18,7 +18,7 @@ func TestOut(t *testing.T) {
 	// Keep the "bad request" retry loop short.
 	old := maxElapsedTime
 	maxElapsedTime = 500 * time.Millisecond
-	defer func() { maxElapsedTime = old }()
+	t.Cleanup(func() { maxElapsedTime = old })
 
 	ok := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -386,14 +386,14 @@ func TestBuildMessage(t *testing.T) {
 			if c.alert.MessageFile != "" || c.alert.ChannelFile != "" || c.alert.TextFile != "" {
 				path = t.TempDir()
 
-				if err := os.WriteFile(filepath.Join(path, "test_file"), []byte("filecontents"), 0666); err != nil {
+				if err := os.WriteFile(filepath.Join(path, "test_file"), []byte("filecontents"), 0o600); err != nil {
 					t.Fatal(err)
 				}
 			}
 
 			got := buildMessage(c.alert, metadata, path)
 			if !cmp.Equal(got, c.want) {
-				t.Fatalf("unexpected slack.Message value from buildSlackMessage:\n\t(GOT): %#v\n\t(WNT): %#v\n\t(DIFF): %v", got, c.want, cmp.Diff(got, c.want))
+				t.Fatalf("unexpected slack.Message value from buildMessage:\n\t(GOT): %#v\n\t(WNT): %#v\n\t(DIFF): %v", got, c.want, cmp.Diff(got, c.want))
 			}
 		})
 	}

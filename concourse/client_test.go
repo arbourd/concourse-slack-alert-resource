@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
-	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -83,34 +82,35 @@ func TestNewClient(t *testing.T) {
 	}
 
 	for name, c := range cases {
-		info := Info{ATCVersion: c.version}
-		legacy := Token{Type: tokenType, Value: c.token}
-		oldsky := map[string]string{"token_type": tokenType, "access_token": c.token}
-		sky := map[string]string{"token_type": tokenType, "access_token": c.token, "id_token": c.idToken}
-		if c.idToken == "" {
-			sky = oldsky
-		}
-
-		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			var resp []byte
-			switch r.RequestURI {
-			case "/api/v1/info":
-				resp, _ = json.Marshal(info)
-			case "/api/v1/teams/main/auth/token":
-				resp, _ = json.Marshal(legacy)
-			case "/sky/token":
-				resp, _ = json.Marshal(oldsky)
-			case "/sky/issuer/token":
-				resp, _ = json.Marshal(sky)
-			default:
-				http.Error(w, "", http.StatusUnauthorized)
+		t.Run(name, func(t *testing.T) {
+			info := Info{ATCVersion: c.version}
+			legacy := Token{Type: tokenType, Value: c.token}
+			oldsky := map[string]string{"token_type": tokenType, "access_token": c.token}
+			sky := map[string]string{"token_type": tokenType, "access_token": c.token, "id_token": c.idToken}
+			if c.idToken == "" {
+				sky = oldsky
 			}
 
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = w.Write(resp)
-		}))
+			s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				var resp []byte
+				switch r.RequestURI {
+				case "/api/v1/info":
+					resp, _ = json.Marshal(info)
+				case "/api/v1/teams/main/auth/token":
+					resp, _ = json.Marshal(legacy)
+				case "/sky/token":
+					resp, _ = json.Marshal(oldsky)
+				case "/sky/issuer/token":
+					resp, _ = json.Marshal(sky)
+				default:
+					http.Error(w, "", http.StatusUnauthorized)
+				}
 
-		t.Run(name, func(t *testing.T) {
+				w.Header().Set("Content-Type", "application/json")
+				_, _ = w.Write(resp)
+			}))
+			defer s.Close()
+
 			client, err := NewClient(s.URL, "main", c.username, c.password)
 			// Test err conditions.
 			if err != nil && !c.err {
@@ -125,22 +125,21 @@ func TestNewClient(t *testing.T) {
 			if client.atcurl.String() != s.URL {
 				t.Fatalf("unexpected Client.atcurl from NewClient:\n\t(GOT): %#v\n\t(WNT): %#v", client.atcurl, s.URL)
 			} else if client.team != "main" {
-				t.Fatalf("unexpected Client.atcurl from NewClient:\n\t(GOT): %#v\n\t(WNT): %#v", client.team, "main")
+				t.Fatalf("unexpected Client.team from NewClient:\n\t(GOT): %#v\n\t(WNT): %#v", client.team, "main")
 			} else if c.public {
 				return
 			}
 
 			// Test client cookie conditions (if pipeline is not public).
 			cv := client.conn.Jar.Cookies(client.atcurl)[0].Value
-			wnt := strings.Join([]string{tokenType, c.token}, " ")
+			wnt := tokenType + " " + c.token
 			if c.idToken != "" {
-				wnt = strings.Join([]string{tokenType, c.idToken}, " ")
+				wnt = tokenType + " " + c.idToken
 			}
 			if cv != wnt {
 				t.Fatalf("unexpected Client.conn cookie from NewClient:\n\t(GOT): %#v\n\t(WNT): %#v", cv, wnt)
 			}
 		})
-		s.Close()
 	}
 }
 
@@ -180,16 +179,17 @@ func TestJobBuild(t *testing.T) {
 	}
 
 	for name, c := range cases {
-		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if c.err {
-				http.Error(w, "", http.StatusUnauthorized)
-			}
-			resp, _ := json.Marshal(c.build)
-			_, _ = w.Write(resp)
-		}))
-		u, _ := url.Parse(s.URL)
-
 		t.Run(name, func(t *testing.T) {
+			s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if c.err {
+					http.Error(w, "", http.StatusUnauthorized)
+					return
+				}
+				_ = json.NewEncoder(w).Encode(c.build)
+			}))
+			defer s.Close()
+			u, _ := url.Parse(s.URL)
+
 			client := &Client{atcurl: u, team: c.build.Team, conn: &http.Client{}}
 			instanceVarsQuery := ""
 
@@ -208,7 +208,6 @@ func TestJobBuild(t *testing.T) {
 				t.Fatalf("unexpected Build from JobBuild:\n\t(GOT): %#v\n\t(WNT): %#v\n\t(DIFF): %v", build, c.build, cmp.Diff(build, c.build))
 			}
 		})
-		s.Close()
 	}
 }
 
