@@ -69,7 +69,7 @@ func Send(webhook string, m *Message, maxRetryTime time.Duration) error {
 			// Drain so the connection can be reused by the next attempt.
 			_, _ = io.Copy(io.Discard, r.Body)
 
-			if r.StatusCode <= 399 {
+			if r.StatusCode >= 200 && r.StatusCode < 300 {
 				return struct{}{}, nil
 			}
 			err = fmt.Errorf("unexpected response status code: %d", r.StatusCode)

@@ -32,46 +32,30 @@ func readLocalFile(root, name string) ([]byte, error) {
 	return os.ReadFile(file)
 }
 
+// paramFromFile returns the trimmed contents of file when set, else value.
+// An unreadable file is logged and value is used instead.
+func paramFromFile(root, param, value, file string) string {
+	if file == "" {
+		return value
+	}
+	f, err := readLocalFile(root, file)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "error reading %s_file: %v\nwill default to %s instead\n", param, err, param)
+		return value
+	}
+	if s := strings.TrimSpace(string(f)); s != "" {
+		return s
+	}
+	return value
+}
+
 func buildMessage(alert Alert, m concourse.BuildMetadata, path string) *slack.Message {
-	message := alert.Message
-	channel := alert.Channel
-	text := alert.Text
-
-	// Open and read message file if set
-	if alert.MessageFile != "" {
-		f, err := readLocalFile(path, alert.MessageFile)
-
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error reading message_file: %v\nwill default to message instead\n", err)
-		} else {
-			message = strings.TrimSpace(string(f))
-		}
-	}
-
-	// Open and read channel file if set
-	if alert.ChannelFile != "" {
-		f, err := readLocalFile(path, alert.ChannelFile)
-
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error reading channel_file: %v\nwill default to channel instead\n", err)
-		} else {
-			channel = strings.TrimSpace(string(f))
-		}
-	}
-
-	// Open and read text file if set
-	if alert.TextFile != "" {
-		f, err := readLocalFile(path, alert.TextFile)
-
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "error reading text_file: %v\nwill default to text instead\n", err)
-		} else {
-			text = strings.TrimSpace(string(f))
-		}
-	}
+	message := paramFromFile(path, "message", alert.Message, alert.MessageFile)
+	channel := paramFromFile(path, "channel", alert.Channel, alert.ChannelFile)
+	text := paramFromFile(path, "text", alert.Text, alert.TextFile)
 
 	attachment := slack.Attachment{
-		Fallback:   fmt.Sprintf("%s -- %s", fmt.Sprintf("%s: %s/%s/%s", message, m.PipelineName, m.JobName, m.BuildName), m.URL),
+		Fallback:   fmt.Sprintf("%s: %s/%s/%s -- %s", message, m.PipelineName, m.JobName, m.BuildName, m.URL),
 		AuthorName: message,
 		Color:      alert.Color,
 		Footer:     m.URL,
@@ -153,6 +137,9 @@ func out(input *concourse.OutRequest, path string) (*concourse.OutResponse, erro
 	}
 
 	alert := NewAlert(input)
+	// Resolve the channel up front so skipped alerts report it too.
+	alert.Channel = paramFromFile(path, "channel", alert.Channel, alert.ChannelFile)
+	alert.ChannelFile = ""
 	metadata := concourse.NewBuildMetadata(input.Source.ConcourseURL)
 	if alert.Disabled {
 		return buildOut(alert.Type, alert.Channel, false), nil
@@ -164,7 +151,8 @@ func out(input *concourse.OutRequest, path string) (*concourse.OutResponse, erro
 			return nil, fmt.Errorf("error getting last build status: %w", err)
 		}
 
-		if (alert.Type == "fixed" && pstatus == "succeeded") || (alert.Type == "broke" && pstatus != "succeeded") {
+		// An empty status means there is no previous build (build 1).
+		if pstatus == "" || (alert.Type == "fixed" && pstatus == "succeeded") || (alert.Type == "broke" && pstatus != "succeeded") {
 			return buildOut(alert.Type, alert.Channel, false), nil
 		}
 	}

@@ -16,72 +16,28 @@ type Alert struct {
 	Disabled    bool
 }
 
+const iconBase = "https://ci.concourse-ci.org/public/images/"
+
+// alertDefaults holds the color, icon and message for each alert type.
+var alertDefaults = map[string]Alert{
+	"success": {Type: "success", Color: "#32cd32", IconURL: iconBase + "favicon-succeeded.png", Message: "Success"},
+	"failed":  {Type: "failed", Color: "#d00000", IconURL: iconBase + "favicon-failed.png", Message: "Failed"},
+	"started": {Type: "started", Color: "#f7cd42", IconURL: iconBase + "favicon-started.png", Message: "Started"},
+	"aborted": {Type: "aborted", Color: "#8d4b32", IconURL: iconBase + "favicon-aborted.png", Message: "Aborted"},
+	"fixed":   {Type: "fixed", Color: "#32cd32", IconURL: iconBase + "favicon-succeeded.png", Message: "Fixed"},
+	"broke":   {Type: "broke", Color: "#d00000", IconURL: iconBase + "favicon-failed.png", Message: "Broke"},
+	"errored": {Type: "errored", Color: "#f5a623", IconURL: iconBase + "favicon-errored.png", Message: "Errored"},
+	"default": {Type: "default", Color: "#35495c", IconURL: iconBase + "favicon-pending.png"},
+}
+
 // NewAlert constructs and returns an Alert.
 func NewAlert(input *concourse.OutRequest) Alert {
-	var alert Alert
-	switch input.Params.AlertType {
-	case "success":
-		alert = Alert{
-			Type:    "success",
-			Color:   "#32cd32",
-			IconURL: "https://ci.concourse-ci.org/public/images/favicon-succeeded.png",
-			Message: "Success",
-		}
-	case "failed":
-		alert = Alert{
-			Type:    "failed",
-			Color:   "#d00000",
-			IconURL: "https://ci.concourse-ci.org/public/images/favicon-failed.png",
-			Message: "Failed",
-		}
-	case "started":
-		alert = Alert{
-			Type:    "started",
-			Color:   "#f7cd42",
-			IconURL: "https://ci.concourse-ci.org/public/images/favicon-started.png",
-			Message: "Started",
-		}
-	case "aborted":
-		alert = Alert{
-			Type:    "aborted",
-			Color:   "#8d4b32",
-			IconURL: "https://ci.concourse-ci.org/public/images/favicon-aborted.png",
-			Message: "Aborted",
-		}
-	case "fixed":
-		alert = Alert{
-			Type:    "fixed",
-			Color:   "#32cd32",
-			IconURL: "https://ci.concourse-ci.org/public/images/favicon-succeeded.png",
-			Message: "Fixed",
-		}
-	case "broke":
-		alert = Alert{
-			Type:    "broke",
-			Color:   "#d00000",
-			IconURL: "https://ci.concourse-ci.org/public/images/favicon-failed.png",
-			Message: "Broke",
-		}
-	case "errored":
-		alert = Alert{
-			Type:    "errored",
-			Color:   "#f5a623",
-			IconURL: "https://ci.concourse-ci.org/public/images/favicon-errored.png",
-			Message: "Errored",
-		}
-	default:
-		alert = Alert{
-			Type:    "default",
-			Color:   "#35495c",
-			IconURL: "https://ci.concourse-ci.org/public/images/favicon-pending.png",
-			Message: "",
-		}
+	alert, ok := alertDefaults[input.Params.AlertType]
+	if !ok {
+		alert = alertDefaults["default"]
 	}
 
-	alert.Disabled = input.Params.Disable
-	if !alert.Disabled {
-		alert.Disabled = input.Source.Disable
-	}
+	alert.Disabled = input.Params.Disable || input.Source.Disable
 
 	alert.Channel = input.Params.Channel
 	if alert.Channel == "" {

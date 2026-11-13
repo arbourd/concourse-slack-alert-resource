@@ -86,18 +86,18 @@ func NewClient(atcurl, team, username, password string) (*Client, error) {
 
 	// Check if target Concourse is less than '4.0.0'.
 	if legacy.Check(v) {
-		url := fmt.Sprintf("%s/api/v1/teams/%s/auth/token", c.atcurl, c.team)
-		err = c.loginLegacy(url, username, password)
+		tokenURL := fmt.Sprintf("%s/api/v1/teams/%s/auth/token", c.atcurl, c.team)
+		err = c.loginLegacy(tokenURL, username, password)
 		return c, err
 	}
 
-	url := fmt.Sprintf("%s/sky/issuer/token", c.atcurl)
+	tokenURL := fmt.Sprintf("%s/sky/issuer/token", c.atcurl)
 	// Support 4.x and 5.x skymarshall calls
 	if oldsky.Check(v) {
-		url = fmt.Sprintf("%s/sky/token", c.atcurl)
+		tokenURL = fmt.Sprintf("%s/sky/token", c.atcurl)
 	}
 
-	token, err := c.login(url, username, password)
+	token, err := c.login(tokenURL, username, password)
 	if err != nil {
 		return nil, err
 	}
@@ -105,8 +105,8 @@ func NewClient(atcurl, team, username, password string) (*Client, error) {
 	// Check if the version supports single cookie access tokens.
 	// Single cookie is used between versions 4.0.0 - 5.5.0 and 6.5.0 or greater.
 	if !multiCookie.Check(v) {
-		err = c.singleCookie(token.TokenType, token.AccessToken)
-		return c, err
+		c.singleCookie(token.TokenType, token.AccessToken)
+		return c, nil
 	}
 
 	// Check if the version is less than '6.1.0'.
@@ -134,7 +134,7 @@ func (c *Client) info() (Info, error) {
 		return info, err
 	}
 	defer r.Body.Close()
-	if r.StatusCode != 200 {
+	if r.StatusCode != http.StatusOK {
 		return info, fmt.Errorf("could not get info from Concourse: status code %d", r.StatusCode)
 	}
 	err = json.NewDecoder(r.Body).Decode(&info)
@@ -143,7 +143,7 @@ func (c *Client) info() (Info, error) {
 }
 
 // singleCookie add the token as a single cookie.
-func (c *Client) singleCookie(tokenType, tokenValue string) error {
+func (c *Client) singleCookie(tokenType, tokenValue string) {
 	c.conn.Jar.SetCookies(
 		c.atcurl,
 		[]*http.Cookie{{
@@ -151,18 +151,17 @@ func (c *Client) singleCookie(tokenType, tokenValue string) error {
 			Value: fmt.Sprintf("%s %s", tokenType, tokenValue),
 		}},
 	)
-	return nil
 }
 
 // splitToken splits the token across multiple cookies.
 func (c *Client) splitToken(tokenType, tokenValue string) error {
-	const NumCookies = 15
+	const numCookies = 15
 	const authCookieName = "skymarshal_auth"
 	const maxCookieSize = 4000
 
 	tokenStr := fmt.Sprintf("%s %s", tokenType, tokenValue)
 
-	for i := 0; i < NumCookies; i++ {
+	for i := range numCookies {
 		chunk := tokenStr
 		if len(chunk) > maxCookieSize {
 			chunk = chunk[:maxCookieSize]
@@ -184,21 +183,20 @@ func (c *Client) splitToken(tokenType, tokenValue string) error {
 }
 
 // login gets an access token from Concourse.
-func (c *Client) login(url, username, password string) (*oauth2.Token, error) {
+func (c *Client) login(tokenURL, username, password string) (*oauth2.Token, error) {
 	config := oauth2.Config{
 		ClientID:     "fly",
 		ClientSecret: "Zmx5",
-		Endpoint:     oauth2.Endpoint{TokenURL: url},
+		Endpoint:     oauth2.Endpoint{TokenURL: tokenURL},
 		Scopes:       []string{"openid", "profile", "email", "federated:id", "groups"},
 	}
 	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, c.conn)
-	t, err := config.PasswordCredentialsToken(ctx, username, password)
-	return t, err
+	return config.PasswordCredentialsToken(ctx, username, password)
 }
 
 // loginLegacy gets a legacy access token from Concourse.
-func (c *Client) loginLegacy(url, username, password string) error {
-	req, err := http.NewRequest("GET", url, nil)
+func (c *Client) loginLegacy(tokenURL, username, password string) error {
+	req, err := http.NewRequest(http.MethodGet, tokenURL, nil)
 	if err != nil {
 		return err
 	}
@@ -209,7 +207,7 @@ func (c *Client) loginLegacy(url, username, password string) error {
 		return err
 	}
 	defer r.Body.Close()
-	if r.StatusCode != 200 {
+	if r.StatusCode != http.StatusOK {
 		return fmt.Errorf("could not log into Concourse: status code %d", r.StatusCode)
 	}
 
@@ -218,13 +216,7 @@ func (c *Client) loginLegacy(url, username, password string) error {
 		return err
 	}
 
-	c.conn.Jar.SetCookies(
-		c.atcurl,
-		[]*http.Cookie{{
-			Name:  "skymarshal_auth",
-			Value: fmt.Sprintf("%s %s", t.Type, t.Value),
-		}},
-	)
+	c.singleCookie(t.Type, t.Value)
 	return nil
 }
 
@@ -234,10 +226,10 @@ func (c *Client) JobBuild(pipeline, job, name, instanceVars string) (*Build, err
 	u := fmt.Sprintf(
 		"%s/api/v1/teams/%s/pipelines/%s/jobs/%s/builds/%s%s",
 		c.atcurl,
-		c.team,
-		pipeline,
-		job,
-		name,
+		url.PathEscape(c.team),
+		url.PathEscape(pipeline),
+		url.PathEscape(job),
+		url.PathEscape(name),
 		instanceVars,
 	)
 
@@ -246,7 +238,7 @@ func (c *Client) JobBuild(pipeline, job, name, instanceVars string) (*Build, err
 		return nil, err
 	}
 	defer r.Body.Close()
-	if r.StatusCode != 200 {
+	if r.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("unexpected status code: %d", r.StatusCode)
 	}
 

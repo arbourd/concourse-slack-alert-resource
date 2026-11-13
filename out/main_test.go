@@ -2,10 +2,12 @@ package main
 
 import (
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -58,6 +60,13 @@ func TestOut(t *testing.T) {
 		"BUILD_JOB_NAME":      "test",
 		"BUILD_NAME":          "2",
 	}
+
+	// The first build has no previous build to compare against.
+	firstBuild := map[string]string{}
+	for k, v := range env {
+		firstBuild[k] = v
+	}
+	firstBuild["BUILD_NAME"] = "1"
 
 	cases := map[string]struct {
 		outRequest *concourse.OutRequest
@@ -170,6 +179,22 @@ func TestOut(t *testing.T) {
 			},
 			want: alerted("broke", "", "false"),
 			env:  env,
+		},
+		"fixed on first build is suppressed": {
+			outRequest: &concourse.OutRequest{
+				Source: concourse.Source{URL: ok.URL},
+				Params: concourse.OutParams{AlertType: "fixed"},
+			},
+			want: alerted("fixed", "", "false"),
+			env:  firstBuild,
+		},
+		"broke on first build is suppressed": {
+			outRequest: &concourse.OutRequest{
+				Source: concourse.Source{URL: ok.URL},
+				Params: concourse.OutParams{AlertType: "broke"},
+			},
+			want: alerted("broke", "", "false"),
+			env:  firstBuild,
 		},
 		"error without Slack URL": {
 			outRequest: &concourse.OutRequest{
@@ -448,6 +473,49 @@ func TestReadLocalFile(t *testing.T) {
 			}
 			if string(got) != c.want {
 				t.Fatalf("unexpected contents from readLocalFile:\n\t(GOT): %q\n\t(WNT): %q", got, c.want)
+			}
+		})
+	}
+}
+
+func TestParamFromFile(t *testing.T) {
+	root := t.TempDir()
+	for name, contents := range map[string]string{"ok": " contents\n", "empty": "\n"} {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(contents), 0o600); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	cases := map[string]struct {
+		file    string
+		want    string
+		wantLog string
+	}{
+		"no file":                       {want: "value"},
+		"file overrides value":          {file: "ok", want: "contents"},
+		"empty file falls back":         {file: "empty", want: "value"},
+		"missing file logs, falls back": {file: "nope", want: "value", wantLog: "will default to message instead"},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			r, w, err := os.Pipe()
+			if err != nil {
+				t.Fatal(err)
+			}
+			old := os.Stderr
+			os.Stderr = w
+			t.Cleanup(func() { os.Stderr = old })
+
+			got := paramFromFile(root, "message", "value", c.file)
+			_ = w.Close()
+			logged, _ := io.ReadAll(r)
+
+			if got != c.want {
+				t.Fatalf("unexpected value from paramFromFile:\n\t(GOT): %q\n\t(WNT): %q", got, c.want)
+			}
+			if (c.wantLog == "") != (len(logged) == 0) || !strings.Contains(string(logged), c.wantLog) {
+				t.Fatalf("unexpected stderr from paramFromFile:\n\t(GOT): %q\n\t(WNT): contains %q", logged, c.wantLog)
 			}
 		})
 	}
