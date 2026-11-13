@@ -40,12 +40,12 @@ func TestOut(t *testing.T) {
 	prevFailed := concourseWith("failed")
 	defer prevFailed.Close()
 
-	alerted := func(atype string, alerted string) *concourse.OutResponse {
+	alerted := func(atype, channel, alerted string) *concourse.OutResponse {
 		return &concourse.OutResponse{
 			Version: concourse.Version{"ver": "static"},
 			Metadata: []concourse.Metadata{
 				{Name: "type", Value: atype},
-				{Name: "channel", Value: ""},
+				{Name: "channel", Value: channel},
 				{Name: "alerted", Value: alerted},
 			},
 		}
@@ -69,75 +69,40 @@ func TestOut(t *testing.T) {
 			outRequest: &concourse.OutRequest{
 				Source: concourse.Source{URL: ok.URL},
 			},
-			want: &concourse.OutResponse{
-				Version: concourse.Version{"ver": "static"},
-				Metadata: []concourse.Metadata{
-					{Name: "type", Value: "default"},
-					{Name: "channel", Value: ""},
-					{Name: "alerted", Value: "true"},
-				},
-			},
-			env: env,
+			want: alerted("default", "", "true"),
+			env:  env,
 		},
 		"success alert": {
 			outRequest: &concourse.OutRequest{
 				Source: concourse.Source{URL: ok.URL},
 				Params: concourse.OutParams{AlertType: "success"},
 			},
-			want: &concourse.OutResponse{
-				Version: concourse.Version{"ver": "static"},
-				Metadata: []concourse.Metadata{
-					{Name: "type", Value: "success"},
-					{Name: "channel", Value: ""},
-					{Name: "alerted", Value: "true"},
-				},
-			},
-			env: env,
+			want: alerted("success", "", "true"),
+			env:  env,
 		},
 		"failed alert": {
 			outRequest: &concourse.OutRequest{
 				Source: concourse.Source{URL: ok.URL},
 				Params: concourse.OutParams{AlertType: "failed"},
 			},
-			want: &concourse.OutResponse{
-				Version: concourse.Version{"ver": "static"},
-				Metadata: []concourse.Metadata{
-					{Name: "type", Value: "failed"},
-					{Name: "channel", Value: ""},
-					{Name: "alerted", Value: "true"},
-				},
-			},
-			env: env,
+			want: alerted("failed", "", "true"),
+			env:  env,
 		},
 		"started alert": {
 			outRequest: &concourse.OutRequest{
 				Source: concourse.Source{URL: ok.URL},
 				Params: concourse.OutParams{AlertType: "started"},
 			},
-			want: &concourse.OutResponse{
-				Version: concourse.Version{"ver": "static"},
-				Metadata: []concourse.Metadata{
-					{Name: "type", Value: "started"},
-					{Name: "channel", Value: ""},
-					{Name: "alerted", Value: "true"},
-				},
-			},
-			env: env,
+			want: alerted("started", "", "true"),
+			env:  env,
 		},
 		"aborted alert": {
 			outRequest: &concourse.OutRequest{
 				Source: concourse.Source{URL: ok.URL},
 				Params: concourse.OutParams{AlertType: "aborted"},
 			},
-			want: &concourse.OutResponse{
-				Version: concourse.Version{"ver": "static"},
-				Metadata: []concourse.Metadata{
-					{Name: "type", Value: "aborted"},
-					{Name: "channel", Value: ""},
-					{Name: "alerted", Value: "true"},
-				},
-			},
-			env: env,
+			want: alerted("aborted", "", "true"),
+			env:  env,
 		},
 		"custom alert": {
 			outRequest: &concourse.OutRequest{
@@ -148,66 +113,38 @@ func TestOut(t *testing.T) {
 					Color:     "#ffffff",
 				},
 			},
-			want: &concourse.OutResponse{
-				Version: concourse.Version{"ver": "static"},
-				Metadata: []concourse.Metadata{
-					{Name: "type", Value: "default"},
-					{Name: "channel", Value: ""},
-					{Name: "alerted", Value: "true"},
-				},
-			},
-			env: env,
+			want: alerted("default", "", "true"),
+			env:  env,
 		},
 		"override channel at Source": {
 			outRequest: &concourse.OutRequest{
 				Source: concourse.Source{URL: ok.URL, Channel: "#source"},
 			},
-			want: &concourse.OutResponse{
-				Version: concourse.Version{"ver": "static"},
-				Metadata: []concourse.Metadata{
-					{Name: "type", Value: "default"},
-					{Name: "channel", Value: "#source"},
-					{Name: "alerted", Value: "true"},
-				},
-			},
-			env: env,
+			want: alerted("default", "#source", "true"),
+			env:  env,
 		},
 		"override channel at Params": {
 			outRequest: &concourse.OutRequest{
 				Source: concourse.Source{URL: ok.URL, Channel: "#source"},
 				Params: concourse.OutParams{Channel: "#params"},
 			},
-			want: &concourse.OutResponse{
-				Version: concourse.Version{"ver": "static"},
-				Metadata: []concourse.Metadata{
-					{Name: "type", Value: "default"},
-					{Name: "channel", Value: "#params"},
-					{Name: "alerted", Value: "true"},
-				},
-			},
-			env: env,
+			want: alerted("default", "#params", "true"),
+			env:  env,
 		},
 		"disable alert": {
 			outRequest: &concourse.OutRequest{
 				Source: concourse.Source{URL: bad.URL},
 				Params: concourse.OutParams{Disable: true},
 			},
-			want: &concourse.OutResponse{
-				Version: concourse.Version{"ver": "static"},
-				Metadata: []concourse.Metadata{
-					{Name: "type", Value: "default"},
-					{Name: "channel", Value: ""},
-					{Name: "alerted", Value: "false"},
-				},
-			},
-			env: env,
+			want: alerted("default", "", "false"),
+			env:  env,
 		},
 		"fixed after failure": {
 			outRequest: &concourse.OutRequest{
 				Source: concourse.Source{URL: ok.URL, ConcourseURL: prevFailed.URL},
 				Params: concourse.OutParams{AlertType: "fixed"},
 			},
-			want: alerted("fixed", "true"),
+			want: alerted("fixed", "", "true"),
 			env:  env,
 		},
 		"fixed after success is suppressed": {
@@ -215,7 +152,7 @@ func TestOut(t *testing.T) {
 				Source: concourse.Source{URL: ok.URL, ConcourseURL: prevOK.URL},
 				Params: concourse.OutParams{AlertType: "fixed"},
 			},
-			want: alerted("fixed", "false"),
+			want: alerted("fixed", "", "false"),
 			env:  env,
 		},
 		"broke after success": {
@@ -223,7 +160,7 @@ func TestOut(t *testing.T) {
 				Source: concourse.Source{URL: ok.URL, ConcourseURL: prevOK.URL},
 				Params: concourse.OutParams{AlertType: "broke"},
 			},
-			want: alerted("broke", "true"),
+			want: alerted("broke", "", "true"),
 			env:  env,
 		},
 		"broke after failure is suppressed": {
@@ -231,7 +168,7 @@ func TestOut(t *testing.T) {
 				Source: concourse.Source{URL: ok.URL, ConcourseURL: prevFailed.URL},
 				Params: concourse.OutParams{AlertType: "broke"},
 			},
-			want: alerted("broke", "false"),
+			want: alerted("broke", "", "false"),
 			env:  env,
 		},
 		"error without Slack URL": {
@@ -275,6 +212,7 @@ func TestOut(t *testing.T) {
 		})
 	}
 }
+
 func TestBuildMessage(t *testing.T) {
 	cases := map[string]struct {
 		alert Alert
@@ -456,6 +394,60 @@ func TestBuildMessage(t *testing.T) {
 			got := buildMessage(c.alert, metadata, path)
 			if !cmp.Equal(got, c.want) {
 				t.Fatalf("unexpected slack.Message value from buildSlackMessage:\n\t(GOT): %#v\n\t(WNT): %#v\n\t(DIFF): %v", got, c.want, cmp.Diff(got, c.want))
+			}
+		})
+	}
+}
+
+func TestReadLocalFile(t *testing.T) {
+	base := t.TempDir()
+	root := filepath.Join(base, "root")
+	if err := os.Mkdir(root, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "ok"), []byte("contents"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	// Outside root.
+	secret := filepath.Join(base, "secret")
+	if err := os.WriteFile(secret, []byte("secret"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(secret, filepath.Join(root, "link-to-file")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(base, filepath.Join(root, "link-to-dir")); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink("ok", filepath.Join(root, "link-inside")); err != nil {
+		t.Fatal(err)
+	}
+
+	cases := map[string]struct {
+		name string
+		want string
+		err  bool
+	}{
+		"file in root":         {name: "ok", want: "contents"},
+		"dot-slash prefix":     {name: "./ok", want: "contents"},
+		"parent escape":        {name: "../secret", err: true},
+		"nested parent escape": {name: "a/../../secret", err: true},
+		"bare parent":          {name: "..", err: true},
+		"absolute path":        {name: secret, err: true},
+		"symlink to file":      {name: "link-to-file", err: true},
+		"symlink via dir":      {name: "link-to-dir/secret", err: true},
+		"symlink inside root":  {name: "link-inside", want: "contents"},
+		"missing file":         {name: "nope", err: true},
+	}
+
+	for name, c := range cases {
+		t.Run(name, func(t *testing.T) {
+			got, err := readLocalFile(root, c.name)
+			if (err != nil) != c.err {
+				t.Fatalf("unexpected result from readLocalFile:\n\t(ERR): %v", err)
+			}
+			if string(got) != c.want {
+				t.Fatalf("unexpected contents from readLocalFile:\n\t(GOT): %q\n\t(WNT): %q", got, c.want)
 			}
 		})
 	}

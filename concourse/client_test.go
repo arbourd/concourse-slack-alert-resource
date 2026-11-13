@@ -211,3 +211,49 @@ func TestJobBuild(t *testing.T) {
 		s.Close()
 	}
 }
+
+func TestJobBuildBadResponse(t *testing.T) {
+	cases := map[string]http.HandlerFunc{
+		"not found":    func(w http.ResponseWriter, r *http.Request) { http.NotFound(w, r) },
+		"server error": func(w http.ResponseWriter, r *http.Request) { http.Error(w, "", http.StatusInternalServerError) },
+		"empty body":   func(w http.ResponseWriter, r *http.Request) {},
+		"null body":    func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("null")) },
+		"invalid json": func(w http.ResponseWriter, r *http.Request) { _, _ = w.Write([]byte("{")) },
+	}
+
+	for name, h := range cases {
+		t.Run(name, func(t *testing.T) {
+			s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.URL.Path == "/api/v1/info" {
+					_ = json.NewEncoder(w).Encode(Info{ATCVersion: "6.5.0"})
+					return
+				}
+				h(w, r)
+			}))
+			defer s.Close()
+
+			client, err := NewClient(s.URL, "main", "", "")
+			if err != nil {
+				t.Fatalf("unexpected error from NewClient:\n\t(ERR): %s", err)
+			}
+			if build, err := client.JobBuild("demo", "test", "1", ""); err == nil {
+				t.Fatalf("expected an error from JobBuild:\n\t(GOT): %#v", build)
+			}
+		})
+	}
+
+	t.Run("transport error", func(t *testing.T) {
+		s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			_ = json.NewEncoder(w).Encode(Info{ATCVersion: "6.5.0"})
+		}))
+		client, err := NewClient(s.URL, "main", "", "")
+		if err != nil {
+			t.Fatalf("unexpected error from NewClient:\n\t(ERR): %s", err)
+		}
+		s.Close()
+
+		if build, err := client.JobBuild("demo", "test", "1", ""); err == nil {
+			t.Fatalf("expected an error from JobBuild:\n\t(GOT): %#v", build)
+		}
+	})
+}

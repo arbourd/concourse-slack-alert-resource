@@ -17,8 +17,16 @@ import (
 
 // readLocalFile reads name relative to root, refusing paths that escape root.
 func readLocalFile(root, name string) ([]byte, error) {
-	file := filepath.Join(root, name)
-	if rel, err := filepath.Rel(root, file); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+	// Resolve symlinks so links cannot escape root.
+	realRoot, err := filepath.EvalSymlinks(root)
+	if err != nil {
+		return nil, err
+	}
+	file, err := filepath.EvalSymlinks(filepath.Join(root, name))
+	if err != nil {
+		return nil, err
+	}
+	if rel, err := filepath.Rel(realRoot, file); err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 		return nil, fmt.Errorf("%q is outside the build directory", name)
 	}
 	return os.ReadFile(file)
