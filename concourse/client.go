@@ -9,10 +9,14 @@ import (
 	"net/http/cookiejar"
 	"net/url"
 	"strconv"
+	"time"
 
 	"github.com/Masterminds/semver/v3"
 	"golang.org/x/oauth2"
 )
+
+// requestTimeout bounds each Concourse API request.
+const requestTimeout = 30 * time.Second
 
 // A Client is a Concourse API connection.
 type Client struct {
@@ -47,7 +51,7 @@ func NewClient(atcurl, team, username, password string) (*Client, error) {
 		atcurl: u,
 		team:   team,
 
-		conn: &http.Client{Jar: jar},
+		conn: &http.Client{Jar: jar, Timeout: requestTimeout},
 	}
 
 	// Return Client early if authorization is not needed.

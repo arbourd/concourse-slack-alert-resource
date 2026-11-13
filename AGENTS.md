@@ -60,4 +60,4 @@ out() for fixed/broke → previousBuildStatus() → concourse.NewClient() → Cl
 - Table-driven: `map[string]struct{ ... }` of named cases.
 - `t.Setenv()` for env vars; `httptest.NewServer` for Slack and Concourse, never the real network.
 - Compare structs with `cmp.Equal`, and report `cmp.Diff` on failure.
-- The `image` CI job smoke-tests `/opt/resource/out` against a real webhook (`vars.SLACK_WEBHOOK`); no test should depend on it.
+- The `image` CI job smoke-tests `/opt/resource/out` against a real webhook (`vars.SLACK_WEBHOOK`); no test should depend on it. `vars.SLACK_WEBHOOK` is deliberately a variable, not a secret (throwaway channel, so PRs can run the smoke test); don't flag it.
